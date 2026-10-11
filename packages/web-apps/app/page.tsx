@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import PriceChart from '@/components/PriceChart';
 import EnergyFlow from '@/components/EnergyFlow';
+import DailyCalendarAndChart from '@/components/DailyCalendarAndChart';
 
 type Tab = 'spot' | 'energy';
 
@@ -36,7 +37,12 @@ export default function Home() {
           </button>
         </div>
 
-        {tab === 'spot' && <PriceChart lastLevel={lastLevel} onLevelChange={setLastLevel} />}
+        {tab === 'spot' && (
+          <>
+            <PriceChart lastLevel={lastLevel} onLevelChange={setLastLevel} />
+            <DailyCalendarAndChart />
+          </>
+        )}
         {tab === 'energy' && <EnergyFlow />}
       </div>
     </main>
