@@ -10,7 +10,7 @@ exports.getFreezePriceDates = getFreezePriceDates;
 const promises_1 = __importDefault(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 // Data directory is configurable via DATA_DIR env var, defaulting to the
-// workspace root `data/freeze_price` directory so the frontend and any other
+// workspace root `data/spot_prices` directory so the frontend and any other
 // tooling can share the same storage location.
 const DATA_DIR = process.env.DATA_DIR
     ? path_1.default.resolve(process.env.DATA_DIR)

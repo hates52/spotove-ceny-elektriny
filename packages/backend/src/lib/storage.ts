@@ -3,11 +3,11 @@ import path from 'path';
 import { HourlyPriceData } from '../types/hourlyTypes';
 
 // Data directory is configurable via DATA_DIR env var, defaulting to the
-// workspace root `data/freeze_price` directory so the frontend and any other
+// workspace root `data/spot_prices` directory so the frontend and any other
 // tooling can share the same storage location.
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
-  : path.join(process.cwd(), '..', '..', 'data', 'freeze_price');
+  : path.join(process.cwd(), '..', '..', 'data', 'spot_prices');
 
 export async function ensureFreezePriceDir(): Promise<void> {
   try {
