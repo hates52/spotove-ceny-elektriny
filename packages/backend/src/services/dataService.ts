@@ -36,10 +36,23 @@ export async function getTodayAndTomorrowData() {
   const todayData = await getFreezePriceData(todayStr);
   const tomorrowData = await getFreezePriceData(tomorrowStr);
 
+  if (tomorrowData && tomorrowData.data.length > 0) {
+    return {
+      days: [todayData, tomorrowData].filter(Boolean),
+      dateRange: { start: todayStr, end: tomorrowStr },
+    };
+  }
+
+  const yesterday = new Date(year, now.getMonth(), now.getDate() - 1);
+  const yesterdayYear = yesterday.getFullYear();
+  const yesterdayMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const yesterdayDay = String(yesterday.getDate()).padStart(2, '0');
+  const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
+
+  const yesterdayData = await getFreezePriceData(yesterdayStr);
+
   return {
-    today: todayData,
-    tomorrow: tomorrowData,
-    todayStr,
-    tomorrowStr,
+    days: [yesterdayData, todayData].filter(Boolean),
+    dateRange: { start: yesterdayStr, end: todayStr },
   };
 }

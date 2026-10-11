@@ -1,12 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchCurrentPrice = fetchCurrentPrice;
 exports.fetchAndStoreHourlyPrices = fetchAndStoreHourlyPrices;
-const promises_1 = __importDefault(require("fs/promises"));
-const path_1 = __importDefault(require("path"));
 const storage_1 = require("../lib/storage");
 async function fetchCurrentPrice() {
     const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-actual-price-json', {});
@@ -43,28 +38,20 @@ async function fetchAndStoreHourlyPrices() {
         data: data.hoursTomorrow || [],
     };
     await (0, storage_1.ensureFreezePriceDir)();
-    const todayFilepath = path_1.default.join(storage_1.FREEZE_PRICE_DIR, `${todayStr}.json`);
-    let existingToday = null;
-    try {
-        const existingContent = await promises_1.default.readFile(todayFilepath, 'utf-8');
-        existingToday = JSON.parse(existingContent);
-    }
-    catch {
-        // ignore missing file
-    }
-    const newTodayJson = JSON.stringify(todayFileForStorage);
-    await promises_1.default.writeFile(todayFilepath, newTodayJson, 'utf-8');
-    const tomorrowFilepath = path_1.default.join(storage_1.FREEZE_PRICE_DIR, `${tomorrowStr}.json`);
+    await (0, storage_1.saveFreezePriceData)(todayFileForStorage);
     let existingTomorrow = null;
     try {
-        const existingContent = await promises_1.default.readFile(tomorrowFilepath, 'utf-8');
-        existingTomorrow = JSON.parse(existingContent);
+        existingTomorrow = await (0, storage_1.getFreezePriceData)(tomorrowStr);
     }
     catch {
         // ignore missing file
     }
-    const newTomorrowJson = JSON.stringify(tomorrowFileForStorage);
-    await promises_1.default.writeFile(tomorrowFilepath, newTomorrowJson, 'utf-8');
-    console.log(`[fetchAndStoreHourlyPrices] success today=${todayStr} tomorrow=${tomorrowStr}`);
-    return todayFileForStorage;
+    // If the API returned no tomorrow data but a previous file exists, keep the old data
+    // instead of overwriting it with an empty array.
+    const tomorrowToStore = tomorrowFileForStorage.data.length > 0 || !existingTomorrow
+        ? tomorrowFileForStorage
+        : existingTomorrow;
+    await (0, storage_1.saveFreezePriceData)(tomorrowToStore);
+    console.log(`[fetchAndStoreHourlyPrices] success today=${todayStr} tomorrow=${tomorrowStr} tomorrowCount=${tomorrowToStore.data.length}`);
+    return { today: todayFileForStorage, tomorrow: tomorrowToStore };
 }

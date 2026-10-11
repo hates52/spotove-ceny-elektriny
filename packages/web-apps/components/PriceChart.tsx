@@ -14,52 +14,21 @@ import annotationPlugin from 'chartjs-plugin-annotation';
 import { Bar } from 'react-chartjs-2';
 import { format } from 'date-fns';
 import 'chartjs-adapter-date-fns';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale, annotationPlugin);
+
+const formatDateRange = (start: string, end: string) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const startStr = `${startDate.getDate()}.${startDate.getMonth() + 1}.${startDate.getFullYear()}`;
+  const endStr = `${endDate.getDate()}.${endDate.getMonth() + 1}.${endDate.getFullYear()}`;
+  return startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+};
+
 import { fetchCurrentPrice } from '@/app/lib/api';
 import { fetchTodayAndTomorrowData } from '@/app/lib/api';
 import { HourlyPriceEntry, HourlyPriceData } from '@/lib/hourlyTypes';
 import { getCookie, setCookie } from '@/lib/cookies';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale, annotationPlugin);
-
-const datasetTitlePlugin = {
-  id: 'datasetTitle',
-  afterDraw(chart: any) {
-    const { ctx, chartArea, scales } = chart;
-    const todayData = chart.data.datasets[0]?.data || [];
-    const tomorrowData = chart.data.datasets[1]?.data || [];
-
-    if (todayData.length === 0 && tomorrowData.length === 0) return;
-
-    ctx.save();
-    ctx.font = '12px sans-serif';
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.textAlign = 'center';
-
-    if (todayData.length > 0) {
-      const first = todayData[0].x;
-      const last = tomorrowData.length > 0 ? tomorrowData[0].x - 1 : chartArea.right;
-      const midX = (scales.x.getPixelForValue(first) + scales.x.getPixelForValue(last)) / 2;
-      const y = chartArea.top - 8;
-      const today = new Date(first);
-      const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
-      ctx.fillText(`Spotové ceny silové elektřiny ke dni ${dateStr}`, midX, y);
-    }
-
-    if (tomorrowData.length > 0) {
-      const first = tomorrowData[0].x;
-      const last = tomorrowData[tomorrowData.length - 1].x;
-      const midX = (scales.x.getPixelForValue(first) + scales.x.getPixelForValue(last)) / 2;
-      const y = chartArea.top - 8;
-      const tomorrow = new Date(first);
-      const dateStr = `${tomorrow.getDate()}.${tomorrow.getMonth() + 1}.${tomorrow.getFullYear()}`;
-      ctx.fillText(`Spotové ceny silové elektřiny ke dni ${dateStr}`, midX, y);
-    }
-
-    ctx.restore();
-  },
-};
-
-ChartJS.register(datasetTitlePlugin);
 
 interface PriceChartProps {
   lastLevel: string | null;
@@ -95,10 +64,11 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     return getCookie('spot_low_tariff') || '';
   });
   const [dataHash, setDataHash] = useState<string>('');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
 
   const loadData = async () => {
     try {
-      const { today, tomorrow } = await fetchTodayAndTomorrowData();
+      const { days, dateRange } = await fetchTodayAndTomorrowData();
       const points: ChartPoint[] = [];
 
       const addDay = (dateStr: string, entries: HourlyPriceEntry[] | undefined) => {
@@ -115,14 +85,16 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         });
       };
 
-      addDay(today?.date || '', today?.data);
-      addDay(tomorrow?.date || '', tomorrow?.data);
+      days?.forEach((dayData: any) => {
+        addDay(dayData?.date || '', dayData?.data);
+      });
 
       points.sort((a, b) => a.timestamp - b.timestamp);
-      const newHash = JSON.stringify({ today, tomorrow });
+      const newHash = JSON.stringify({ days, dateRange });
       if (newHash !== dataHash) {
         setDataHash(newHash);
         setChartPoints(points);
+        setDateRange(dateRange);
       }
       setError(null);
     } catch (err) {
@@ -197,38 +169,21 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
 
   const dynamicBarThickness = Math.max(1, Math.floor(900 / Math.max(1, chartPoints.length) - 0.5));
 
-  const tomorrowDate = chartPoints.length > 0 ? new Date(chartPoints[chartPoints.length - 1].timestamp) : new Date();
-  const tomorrowStart = new Date(tomorrowDate.getFullYear(), tomorrowDate.getMonth(), tomorrowDate.getDate()).getTime();
-
-  const todayData = chartPoints.filter((d) => d.timestamp < tomorrowStart);
-  const tomorrowData = chartPoints.filter((d) => d.timestamp >= tomorrowStart);
-
   const chartData = useMemo(() => ({
     datasets: [
       {
         label: currency,
-        data: todayData.map((d) => ({
+        data: chartPoints.map((d) => ({
           x: d.timestamp,
           y: currency === 'CZK' ? d.priceCZK : d.priceEur,
         })),
-        backgroundColor: todayData.map((d) => getLevelColor(d.level)),
-        borderColor: todayData.map((d) => getLevelBorderColor(d.level)),
-        borderWidth: 0,
-        barThickness: dynamicBarThickness,
-      },
-      {
-        label: currency,
-        data: tomorrowData.map((d) => ({
-          x: d.timestamp,
-          y: currency === 'CZK' ? d.priceCZK : d.priceEur,
-        })),
-        backgroundColor: tomorrowData.map((d) => getLevelColor(d.level).replace('0.7', '0.25').replace('0.6', '0.2')),
-        borderColor: tomorrowData.map((d) => getLevelBorderColor(d.level).replace('1', '0.4')),
+        backgroundColor: chartPoints.map((d) => getLevelColor(d.level)),
+        borderColor: chartPoints.map((d) => getLevelBorderColor(d.level)),
         borderWidth: 0,
         barThickness: dynamicBarThickness,
       },
     ],
-  }), [currency, todayData, tomorrowData, dynamicBarThickness]);
+  }), [currency, chartPoints, dynamicBarThickness]);
 
   const now = Date.now();
   const currentPoint = chartPoints.reduce((prev, curr) =>
@@ -255,33 +210,11 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
       },
     };
 
-    if (chartPoints.length > 0 && tomorrowStart > chartPoints[0].timestamp) {
-      ann.daySeparator = {
-        type: 'line' as const,
-        xMin: tomorrowStart,
-        xMax: tomorrowStart,
-        borderColor: 'rgba(0,0,0,0.35)',
-        borderWidth: 1,
-        borderDash: [2, 2] as [number, number],
-      };
-
-      const todayStart = new Date(chartPoints[0].timestamp).setHours(0, 0, 0, 0);
-      ann.todayBackground = {
-        type: 'box' as const,
-        xMin: todayStart,
-        xMax: tomorrowStart,
-        backgroundColor: 'rgba(255,255,255,0)',
-        borderWidth: 0,
-      };
-
+    if (chartPoints.length > 0) {
+      const firstTimestamp = chartPoints[0].timestamp;
       const lastTimestamp = chartPoints[chartPoints.length - 1].timestamp;
-      ann.tomorrowBackground = {
-        type: 'box' as const,
-        xMin: tomorrowStart,
-        xMax: lastTimestamp + 15 * 60 * 1000,
-        backgroundColor: 'rgba(128,128,128,0.08)',
-        borderWidth: 0,
-      };
+      const firstDate = new Date(firstTimestamp).setHours(0, 0, 0, 0);
+      const lastDate = new Date(lastTimestamp).setHours(23, 59, 59, 999);
     }
 
     const highTariffValue = parseFloat(highTariff);
@@ -321,12 +254,12 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     }
 
     return ann;
-  }, [now, labelContent, chartPoints, tomorrowStart, highTariff, lowTariff]);
+  }, [now, labelContent, chartPoints, highTariff, lowTariff]);
 
   const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
+    animation: false as const,
     layout: {
       padding: {
         top: 30,
@@ -334,7 +267,11 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     },
     plugins: {
       title: {
-        display: false,
+        display: !!dateRange,
+        text: dateRange ? `Spotové ceny silové elektřiny: ${formatDateRange(dateRange.start, dateRange.end)}` : '',
+        font: { size: 14, weight: 'bold' as const },
+        color: 'rgba(0,0,0,0.7)',
+        padding: { bottom: 10 },
       },
       legend: {
         display: false,
@@ -373,7 +310,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         beginAtZero: false,
       },
     },
-  }), [annotations]);
+  }), [annotations, dateRange]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-gray-500">Načítání dat...</div>;
