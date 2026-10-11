@@ -7,10 +7,10 @@
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=@spotove-ceny-elektriny/backend",
-    "dev:web": "npm run dev --workspace=@spotove-ceny-elektriny/web-apps",
+    "dev:web": "npm run dev --workspace=@spotove-ceny-elektriny/web-app",
     "build:backend": "npm run build --workspace=@spotove-ceny-elektriny/backend",
-    "build:web": "npm run build --workspace=@spotove-ceny-elektriny/web-apps",
+    "build:web": "npm run build --workspace=@spotove-ceny-elektriny/web-app",
     "start:backend": "npm run start --workspace=@spotove-ceny-elektriny/backend",
-    "start:web": "npm run start --workspace=@spotove-ceny-elektriny/web-apps"
+    "start:web": "npm run start --workspace=@spotove-ceny-elektriny/web-app"
   }
 }

@@ -5,7 +5,7 @@ Monorepo obsahující oddělený backend (API) a frontend (web aplikaci).
 ## Struktura
 
 - `packages/backend` - API server (Express + TypeScript)
-- `packages/web-apps` - Frontend (Next.js 14 + React + TypeScript)
+- `packages/web-app` - Frontend (Next.js 14 + React + TypeScript)
 - `packages/mobile-ios` - iOS aplikace (příprava)
 - `packages/mobile-android` - Android aplikace (příprava)
 
@@ -24,7 +24,7 @@ Backend běží na http://localhost:4000
 ### Frontend
 
 ```bash
-cd packages/web-apps
+cd packages/web-app
 npm install
 npm run dev
 ```
