@@ -4,45 +4,54 @@ import { useEffect, useState } from 'react';
 
 type FlowDirection = 'charging' | 'discharging' | 'idle';
 
-interface EnergyFlowProps {
-  lastLevel: string | null;
+interface CurrentPrice {
+  priceCZK: number;
+  priceEUR: number;
+  level: string;
 }
 
-export default function EnergyFlow({ lastLevel }: EnergyFlowProps) {
+export default function EnergyFlow() {
   const [flow1, setFlow1] = useState<FlowDirection>('idle');
   const [flow2, setFlow2] = useState<FlowDirection>('idle');
   const [flow3, setFlow3] = useState<FlowDirection>('idle');
 
   useEffect(() => {
-    if (!lastLevel) {
-      setFlow1('idle');
-      setFlow2('idle');
-      setFlow3('idle');
-      return;
-    }
+    const fetchCurrent = async () => {
+      try {
+        const res = await fetch('/api/current-price', { cache: 'no-store' });
+        if (!res.ok) return;
+        const price: CurrentPrice = await res.json();
 
-    switch (lastLevel) {
-      case 'medium':
-        setFlow1('idle');
-        setFlow2('idle');
-        setFlow3('charging');
-        break;
-      case 'low':
-        setFlow1('charging');
-        setFlow2('idle');
-        setFlow3('charging');
-        break;
-      case 'high':
-        setFlow1('idle');
-        setFlow2('charging');
-        setFlow3('idle');
-        break;
-      default:
-        setFlow1('idle');
-        setFlow2('idle');
-        setFlow3('idle');
-    }
-  }, [lastLevel]);
+        switch (price.level) {
+          case 'low':
+            setFlow1('charging');
+            setFlow2('idle');
+            setFlow3('charging');
+            break;
+          case 'medium':
+            setFlow1('idle');
+            setFlow2('idle');
+            setFlow3('charging');
+            break;
+          case 'high':
+            setFlow1('idle');
+            setFlow2('charging');
+            setFlow3('idle');
+            break;
+          default:
+            setFlow1('idle');
+            setFlow2('idle');
+            setFlow3('idle');
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchCurrent();
+    const intervalId = setInterval(fetchCurrent, 1000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const getFlowColor = (direction: FlowDirection) => {
     if (direction === 'charging') return '#22c55e';
@@ -98,24 +107,14 @@ export default function EnergyFlow({ lastLevel }: EnergyFlowProps) {
             strokeDasharray={isIdle ? 'none' : '8 4'}
             opacity={isIdle ? 0.4 : 1}
             markerEnd={`url(#arrow-${color.replace('#', '')})`}
-            className={isIdle ? '' : 'energy-line'}
           />
-          <style>
-            {`.energy-line {
-              animation: flow 1s linear infinite;
-            }
-            @keyframes flow {
-              from { stroke-dashoffset: 24; }
-              to { stroke-dashoffset: 0; }
-            }`}
-          </style>
         </svg>
       </div>
     );
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
+    <div className="w-full p-4">
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4 text-center">Schéma propojení energie</h2>
 
@@ -136,21 +135,9 @@ export default function EnergyFlow({ lastLevel }: EnergyFlowProps) {
             <path
               d="M 240 220 L 240 320 L 655 320 L 655 220"
               fill="none"
-              className={flow3 === 'idle' ? '' : 'energy-line'}
               style={flowAnimation(flow3)}
               markerEnd={`url(#arrow-${getFlowColor(flow3).replace('#', '')})`}
             />
-
-            {}
-            <style>
-              {`.energy-line {
-                animation: flow 1s linear infinite;
-              }
-              @keyframes flow {
-                from { stroke-dashoffset: 24; }
-                to { stroke-dashoffset: 0; }
-              }`}
-            </style>
           </svg>
 
           {}

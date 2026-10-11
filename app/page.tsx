@@ -37,7 +37,7 @@ export default function Home() {
         </div>
 
         {tab === 'spot' && <PriceChart lastLevel={lastLevel} onLevelChange={setLastLevel} />}
-        {tab === 'energy' && <EnergyFlow lastLevel={lastLevel} />}
+        {tab === 'energy' && <EnergyFlow />}
       </div>
     </main>
   );

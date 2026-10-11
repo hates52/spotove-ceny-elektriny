@@ -2,33 +2,19 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { PriceData } from '../lib/types';
-import { appendPriceData } from '../lib/storage';
 import { HourlyPriceData } from '../lib/hourlyTypes';
 import { ensureFreezePriceDir, FREEZE_PRICE_DIR } from '../lib/storage';
 
-export async function fetchAndStorePrice(): Promise<PriceData> {
-  const startedAt = new Date().toISOString();
-  console.log(`[fetchAndStorePrice] start ${startedAt}`);
-
+export async function fetchCurrentPrice() {
   const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-actual-price-json', {
     next: { revalidate: 0 },
   });
 
   if (!response.ok) {
-    console.log(`[fetchAndStorePrice] failed status=${response.status} at=${new Date().toISOString()}`);
     throw new Error(`Failed to fetch price: ${response.status}`);
   }
 
-  const data = await response.json();
-  const priceData: PriceData = {
-    ...data,
-    timestamp: new Date().toISOString(),
-  };
-
-  await appendPriceData(priceData);
-  console.log(`[fetchAndStorePrice] success priceCZK=${priceData.priceCZK} priceEUR=${priceData.priceEUR} level=${priceData.level} at=${new Date().toISOString()}`);
-  return priceData;
+  return response.json();
 }
 
 export async function fetchAndStoreHourlyPrices(): Promise<HourlyPriceData> {
@@ -78,14 +64,6 @@ export async function fetchAndStoreHourlyPrices(): Promise<HourlyPriceData> {
   };
 
   await ensureFreezePriceDir();
-
-  const files = await fs.readdir(FREEZE_PRICE_DIR);
-  for (const file of files) {
-    if (file.endsWith('.json') && file !== `${todayStr}.json` && file !== `${tomorrowStr}.json`) {
-      await fs.unlink(path.join(FREEZE_PRICE_DIR, file));
-      console.log(`[fetchAndStoreHourlyPrices] removed old file ${file}`);
-    }
-  }
 
   const todayFilepath = path.join(FREEZE_PRICE_DIR, `${todayStr}.json`);
   let existingToday: { date: string; data: any[] } | null = null;

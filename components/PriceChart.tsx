@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,12 +14,52 @@ import annotationPlugin from 'chartjs-plugin-annotation';
 import { Bar } from 'react-chartjs-2';
 import { format } from 'date-fns';
 import 'chartjs-adapter-date-fns';
-import { fetchAndStorePrice } from '../app/actions';
+import { fetchCurrentPrice } from '../app/actions';
 import { getTodayAndTomorrowData } from '../app/read-actions';
 import { HourlyPriceEntry, HourlyPriceData } from '../lib/hourlyTypes';
 import { getCookie, setCookie } from '../lib/cookies';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale, annotationPlugin);
+
+const datasetTitlePlugin = {
+  id: 'datasetTitle',
+  afterDraw(chart: any) {
+    const { ctx, chartArea, scales } = chart;
+    const todayData = chart.data.datasets[0]?.data || [];
+    const tomorrowData = chart.data.datasets[1]?.data || [];
+
+    if (todayData.length === 0 && tomorrowData.length === 0) return;
+
+    ctx.save();
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.textAlign = 'center';
+
+    if (todayData.length > 0) {
+      const first = todayData[0].x;
+      const last = tomorrowData.length > 0 ? tomorrowData[0].x - 1 : chartArea.right;
+      const midX = (scales.x.getPixelForValue(first) + scales.x.getPixelForValue(last)) / 2;
+      const y = chartArea.top - 8;
+      const today = new Date(first);
+      const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
+      ctx.fillText(`Spotové ceny silové elektřiny ke dni ${dateStr}`, midX, y);
+    }
+
+    if (tomorrowData.length > 0) {
+      const first = tomorrowData[0].x;
+      const last = tomorrowData[tomorrowData.length - 1].x;
+      const midX = (scales.x.getPixelForValue(first) + scales.x.getPixelForValue(last)) / 2;
+      const y = chartArea.top - 8;
+      const tomorrow = new Date(first);
+      const dateStr = `${tomorrow.getDate()}.${tomorrow.getMonth() + 1}.${tomorrow.getFullYear()}`;
+      ctx.fillText(`Spotové ceny silové elektřiny ke dni ${dateStr}`, midX, y);
+    }
+
+    ctx.restore();
+  },
+};
+
+ChartJS.register(datasetTitlePlugin);
 
 interface PriceChartProps {
   lastLevel: string | null;
@@ -33,58 +73,28 @@ interface ChartPoint {
   level: string;
 }
 
+interface CurrentPrice {
+  priceCZK: number;
+  priceEUR: number;
+  level: string;
+}
+
 export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps) {
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetch, setLastFetch] = useState<Date | null>(null);
-  const [fetchIntervalMinutes, setFetchIntervalMinutes] = useState<number>(() => {
-    const cookie = getCookie('spot_interval');
-    const parsed = cookie ? parseInt(cookie, 10) : NaN;
-    return [1, 5, 15, 30, 60].includes(parsed) ? parsed : 60;
-  });
-  const [nextFetchCountdown, setNextFetchCountdown] = useState<number>(() => {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const ms = now.getMilliseconds();
-    const interval = (() => {
-      const cookie = getCookie('spot_interval');
-      const parsed = cookie ? parseInt(cookie, 10) : NaN;
-      return [1, 5, 15, 30, 60].includes(parsed) ? parsed : 60;
-    })();
-
-    const minutesUntilNext = interval - (minutes % interval);
-    if (minutesUntilNext === interval && seconds === 0 && ms === 0) {
-      return 0;
-    }
-    const totalSecondsUntilNext = minutesUntilNext * 60 - seconds;
-    const delayMs = totalSecondsUntilNext * 1000 - ms;
-    return Math.max(0, Math.ceil(delayMs / 1000));
-  });
+  const [currentPrice, setCurrentPrice] = useState<CurrentPrice | null>(null);
   const [currency, setCurrency] = useState<'CZK' | 'EUR'>(() => {
     const cookie = getCookie('spot_currency');
     return cookie === 'EUR' ? 'EUR' : 'CZK';
   });
-
-  const getNextFetchDelaySeconds = () => {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const ms = now.getMilliseconds();
-    const interval = fetchIntervalMinutes;
-
-    const minutesUntilNext = interval - (minutes % interval);
-
-    if (minutesUntilNext === interval && seconds === 0 && ms === 0) {
-      return 0;
-    }
-
-    const totalSecondsUntilNext = minutesUntilNext * 60 - seconds;
-    const delayMs = totalSecondsUntilNext * 1000 - ms;
-
-    return Math.max(0, Math.ceil(delayMs / 1000));
-  };
+  const [highTariff, setHighTariff] = useState<string>(() => {
+    return getCookie('spot_high_tariff') || '';
+  });
+  const [lowTariff, setLowTariff] = useState<string>(() => {
+    return getCookie('spot_low_tariff') || '';
+  });
+  const [dataHash, setDataHash] = useState<string>('');
 
   const loadData = async () => {
     try {
@@ -109,7 +119,11 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
       addDay(tomorrow?.date || '', tomorrow?.data);
 
       points.sort((a, b) => a.timestamp - b.timestamp);
-      setChartPoints(points);
+      const newHash = JSON.stringify({ today, tomorrow });
+      if (newHash !== dataHash) {
+        setDataHash(newHash);
+        setChartPoints(points);
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -123,45 +137,37 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   }, []);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const performFetch = async () => {
+    const fetchCurrent = async () => {
       try {
-        const price = await fetchAndStorePrice();
+        const price = await fetchCurrentPrice();
+        setCurrentPrice({
+          priceCZK: price.priceCZK,
+          priceEUR: price.priceEUR,
+          level: price.level,
+        });
         onLevelChange(price.level);
-        setLastFetch(new Date());
-        setNextFetchCountdown(getNextFetchDelaySeconds());
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fetch failed');
       }
-
-      const delay = getNextFetchDelaySeconds() * 1000;
-      timeoutId = setTimeout(performFetch, delay);
     };
 
-    performFetch();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [fetchIntervalMinutes]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNextFetchCountdown((prev) => (prev > 0 ? prev - 1 : getNextFetchDelaySeconds()));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [fetchIntervalMinutes]);
+    fetchCurrent();
+    const intervalId = setInterval(fetchCurrent, 10000);
+    return () => clearInterval(intervalId);
+  }, [onLevelChange]);
 
   useEffect(() => {
     setCookie('spot_currency', currency);
   }, [currency]);
 
   useEffect(() => {
-    setCookie('spot_interval', String(fetchIntervalMinutes));
-  }, [fetchIntervalMinutes]);
+    setCookie('spot_high_tariff', highTariff);
+  }, [highTariff]);
+
+  useEffect(() => {
+    setCookie('spot_low_tariff', lowTariff);
+  }, [lowTariff]);
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -189,38 +195,141 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     }
   };
 
-  const dynamicBarThickness = Math.max(1, Math.floor(900 / Math.max(1, chartPoints.length)) - 2);
+  const dynamicBarThickness = Math.max(1, Math.floor(900 / Math.max(1, chartPoints.length) - 0.5));
 
-  const chartData = {
+  const tomorrowDate = chartPoints.length > 0 ? new Date(chartPoints[chartPoints.length - 1].timestamp) : new Date();
+  const tomorrowStart = new Date(tomorrowDate.getFullYear(), tomorrowDate.getMonth(), tomorrowDate.getDate()).getTime();
+
+  const todayData = chartPoints.filter((d) => d.timestamp < tomorrowStart);
+  const tomorrowData = chartPoints.filter((d) => d.timestamp >= tomorrowStart);
+
+  const chartData = useMemo(() => ({
     datasets: [
       {
         label: currency,
-        data: chartPoints.map((d) => ({
+        data: todayData.map((d) => ({
           x: d.timestamp,
           y: currency === 'CZK' ? d.priceCZK : d.priceEur,
         })),
-        backgroundColor: chartPoints.map((d) => getLevelColor(d.level)),
-        borderColor: chartPoints.map((d) => getLevelBorderColor(d.level)),
-        borderWidth: 1,
+        backgroundColor: todayData.map((d) => getLevelColor(d.level)),
+        borderColor: todayData.map((d) => getLevelBorderColor(d.level)),
+        borderWidth: 0,
+        barThickness: dynamicBarThickness,
+      },
+      {
+        label: currency,
+        data: tomorrowData.map((d) => ({
+          x: d.timestamp,
+          y: currency === 'CZK' ? d.priceCZK : d.priceEur,
+        })),
+        backgroundColor: tomorrowData.map((d) => getLevelColor(d.level).replace('0.7', '0.25').replace('0.6', '0.2')),
+        borderColor: tomorrowData.map((d) => getLevelBorderColor(d.level).replace('1', '0.4')),
+        borderWidth: 0,
         barThickness: dynamicBarThickness,
       },
     ],
-  };
+  }), [currency, todayData, tomorrowData, dynamicBarThickness]);
 
   const now = Date.now();
   const currentPoint = chartPoints.reduce((prev, curr) =>
     Math.abs(curr.timestamp - now) < Math.abs(prev.timestamp - now) ? curr : prev
   , chartPoints[0]);
-  const currentPrice = currentPoint ? (currency === 'CZK' ? currentPoint.priceCZK : currentPoint.priceEur) : null;
-  const labelContent = currentPrice !== null ? `${currentPrice.toFixed(2)} ${currency}` : 'now';
+  const chartCurrentPrice = currentPoint ? (currency === 'CZK' ? currentPoint.priceCZK : currentPoint.priceEur) : null;
+  const labelContent = 'now';
 
-  const options = {
+  const annotations: Record<string, any> = {
+    nowLine: {
+      type: 'line' as const,
+      xMin: now,
+      xMax: now,
+      borderColor: 'rgba(0,0,0,0.6)',
+      borderWidth: 1,
+      borderDash: [6, 4] as [number, number],
+      label: {
+        display: true,
+        content: labelContent,
+        position: 'end' as const,
+        yAdjust: -12,
+      },
+    },
+  };
+
+  if (chartPoints.length > 0 && tomorrowStart > chartPoints[0].timestamp) {
+    annotations.daySeparator = {
+      type: 'line' as const,
+      xMin: tomorrowStart,
+      xMax: tomorrowStart,
+      borderColor: 'rgba(0,0,0,0.35)',
+      borderWidth: 1,
+      borderDash: [2, 2] as [number, number],
+    };
+
+    const todayStart = new Date(chartPoints[0].timestamp).setHours(0, 0, 0, 0);
+    annotations.todayBackground = {
+      type: 'box' as const,
+      xMin: todayStart,
+      xMax: tomorrowStart,
+      backgroundColor: 'rgba(255,255,255,0)',
+      borderWidth: 0,
+    };
+
+    const lastTimestamp = chartPoints[chartPoints.length - 1].timestamp;
+    annotations.tomorrowBackground = {
+      type: 'box' as const,
+      xMin: tomorrowStart,
+      xMax: lastTimestamp + 15 * 60 * 1000,
+      backgroundColor: 'rgba(128,128,128,0.08)',
+      borderWidth: 0,
+    };
+  }
+
+  const highTariffValue = parseFloat(highTariff);
+  if (!Number.isNaN(highTariffValue)) {
+    annotations.highTariffLine = {
+      type: 'line' as const,
+      yMin: highTariffValue,
+      yMax: highTariffValue,
+      borderColor: 'rgba(128,128,128,0.8)',
+      borderWidth: 1,
+      borderDash: [4, 4] as [number, number],
+      label: {
+        display: true,
+        content: 'VT',
+        position: 'end' as const,
+        xAdjust: 10,
+      },
+    };
+  }
+
+  const lowTariffValue = parseFloat(lowTariff);
+  if (!Number.isNaN(lowTariffValue)) {
+    annotations.lowTariffLine = {
+      type: 'line' as const,
+      yMin: lowTariffValue,
+      yMax: lowTariffValue,
+      borderColor: 'rgba(128,128,128,0.8)',
+      borderWidth: 1,
+      borderDash: [4, 4] as [number, number],
+      label: {
+        display: true,
+        content: ' NT',
+        position: 'end' as const,
+        xAdjust: 10,
+      },
+    };
+  }
+
+  const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 30,
+      },
+    },
     plugins: {
       title: {
-        display: true,
-        text: `Cena silové elektřiny (${currency})`,
+        display: false,
       },
       legend: {
         display: false,
@@ -229,22 +338,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         enabled: true,
       },
       annotation: {
-        annotations: {
-          nowLine: {
-            type: 'line' as const,
-            xMin: now,
-            xMax: now,
-            borderColor: 'rgba(0,0,0,0.6)',
-            borderWidth: 1,
-            borderDash: [6, 4] as [number, number],
-            label: {
-              display: true,
-              content: labelContent,
-              position: 'end' as const,
-              yAdjust: -12,
-            },
-          },
-        },
+        annotations,
       },
     },
     scales: {
@@ -274,59 +368,68 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         beginAtZero: false,
       },
     },
-  };
+  }), [annotations]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-gray-500">Načítání dat...</div>;
   }
 
+  const actualPrice = currentPrice ? (currency === 'CZK' ? currentPrice.priceCZK : currentPrice.priceEUR) : null;
+  const actualLevel = currentPrice?.level || lastLevel;
+
   return (
     <div className="w-full p-4">
       <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm text-gray-600">
-          {lastFetch && (
+          {actualPrice !== null ? (
             <>
-              Poslední stažení: {format(lastFetch, 'HH:mm:ss')}
-              <br />
-              Další stažení za: {nextFetchCountdown}s
+              Aktuální cena: <strong>{actualPrice.toFixed(2)} {currency}/MWh</strong>
             </>
+          ) : (
+            'Načítání aktuální ceny...'
           )}
-          {!lastFetch && 'Čekání na první stažení...'}
+        </div>
+        <div>
+          <span className="text-sm text-gray-700 mr-2">Měna:</span>
+          {(['CZK', 'EUR'] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setCurrency(c)}
+              className={`mx-1 px-3 py-1 text-sm rounded ${
+                currency === c
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {c}
+            </button>
+          )          )}
         </div>
       </div>
 
-      <div className="mb-4">
-        <span className="text-sm text-gray-700 mr-2">Aktualizace každých:</span>
-        {([1, 5, 15, 30, 60] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setFetchIntervalMinutes(m)}
-            className={`mx-1 px-3 py-1 text-sm rounded ${
-              fetchIntervalMinutes === m
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {m}m
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-4">
-        <span className="text-sm text-gray-700 mr-2">Měna:</span>
-        {(['CZK', 'EUR'] as const).map((c) => (
-          <button
-            key={c}
-            onClick={() => setCurrency(c)}
-            className={`mx-1 px-3 py-1 text-sm rounded ${
-              currency === c
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap gap-4">
+        <div>
+          <span className="text-sm text-gray-700 mr-2">Vysoký tarif:</span>
+          <input
+            type="number"
+            step="any"
+            value={highTariff}
+            onChange={(e) => setHighTariff(e.target.value)}
+            placeholder="Cena vysokého tarifu"
+            className="px-2 py-1 border rounded text-sm"
+          />
+        </div>
+        <div>
+          <span className="text-sm text-gray-700 mr-2">Nízký tarif:</span>
+          <input
+            type="number"
+            step="any"
+            value={lowTariff}
+            onChange={(e) => setLowTariff(e.target.value)}
+            placeholder="Cena nízkého tarifu"
+            className="px-2 py-1 border rounded text-sm"
+          />
+        </div>
       </div>
 
       {error && (
@@ -350,7 +453,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 bg-green-500 rounded"></span>
-            <span><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče (nabíjení auta, ohřev bojleru).</span>
+            <span><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče.</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 bg-yellow-500 rounded"></span>
