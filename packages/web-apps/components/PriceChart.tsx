@@ -237,91 +237,96 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   const chartCurrentPrice = currentPoint ? (currency === 'CZK' ? currentPoint.priceCZK : currentPoint.priceEur) : null;
   const labelContent = 'now';
 
-  const annotations: Record<string, any> = {
-    nowLine: {
-      type: 'line' as const,
-      xMin: now,
-      xMax: now,
-      borderColor: 'rgba(0,0,0,0.6)',
-      borderWidth: 1,
-      borderDash: [6, 4] as [number, number],
-      label: {
-        display: true,
-        content: labelContent,
-        position: 'end' as const,
-        yAdjust: -12,
-      },
-    },
-  };
-
-  if (chartPoints.length > 0 && tomorrowStart > chartPoints[0].timestamp) {
-    annotations.daySeparator = {
-      type: 'line' as const,
-      xMin: tomorrowStart,
-      xMax: tomorrowStart,
-      borderColor: 'rgba(0,0,0,0.35)',
-      borderWidth: 1,
-      borderDash: [2, 2] as [number, number],
-    };
-
-    const todayStart = new Date(chartPoints[0].timestamp).setHours(0, 0, 0, 0);
-    annotations.todayBackground = {
-      type: 'box' as const,
-      xMin: todayStart,
-      xMax: tomorrowStart,
-      backgroundColor: 'rgba(255,255,255,0)',
-      borderWidth: 0,
-    };
-
-    const lastTimestamp = chartPoints[chartPoints.length - 1].timestamp;
-    annotations.tomorrowBackground = {
-      type: 'box' as const,
-      xMin: tomorrowStart,
-      xMax: lastTimestamp + 15 * 60 * 1000,
-      backgroundColor: 'rgba(128,128,128,0.08)',
-      borderWidth: 0,
-    };
-  }
-
-  const highTariffValue = parseFloat(highTariff);
-  if (!Number.isNaN(highTariffValue)) {
-    annotations.highTariffLine = {
-      type: 'line' as const,
-      yMin: highTariffValue,
-      yMax: highTariffValue,
-      borderColor: 'rgba(128,128,128,0.8)',
-      borderWidth: 1,
-      borderDash: [4, 4] as [number, number],
-      label: {
-        display: true,
-        content: 'VT',
-        position: 'end' as const,
-        xAdjust: 10,
+  const annotations = useMemo<Record<string, any>>(() => {
+    const ann: Record<string, any> = {
+      nowLine: {
+        type: 'line' as const,
+        xMin: now,
+        xMax: now,
+        borderColor: 'rgba(0,0,0,0.6)',
+        borderWidth: 1,
+        borderDash: [6, 4] as [number, number],
+        label: {
+          display: true,
+          content: labelContent,
+          position: 'end' as const,
+          yAdjust: -12,
+        },
       },
     };
-  }
 
-  const lowTariffValue = parseFloat(lowTariff);
-  if (!Number.isNaN(lowTariffValue)) {
-    annotations.lowTariffLine = {
-      type: 'line' as const,
-      yMin: lowTariffValue,
-      yMax: lowTariffValue,
-      borderColor: 'rgba(128,128,128,0.8)',
-      borderWidth: 1,
-      borderDash: [4, 4] as [number, number],
-      label: {
-        display: true,
-        content: ' NT',
-        position: 'end' as const,
-        xAdjust: 10,
-      },
-    };
-  }
+    if (chartPoints.length > 0 && tomorrowStart > chartPoints[0].timestamp) {
+      ann.daySeparator = {
+        type: 'line' as const,
+        xMin: tomorrowStart,
+        xMax: tomorrowStart,
+        borderColor: 'rgba(0,0,0,0.35)',
+        borderWidth: 1,
+        borderDash: [2, 2] as [number, number],
+      };
+
+      const todayStart = new Date(chartPoints[0].timestamp).setHours(0, 0, 0, 0);
+      ann.todayBackground = {
+        type: 'box' as const,
+        xMin: todayStart,
+        xMax: tomorrowStart,
+        backgroundColor: 'rgba(255,255,255,0)',
+        borderWidth: 0,
+      };
+
+      const lastTimestamp = chartPoints[chartPoints.length - 1].timestamp;
+      ann.tomorrowBackground = {
+        type: 'box' as const,
+        xMin: tomorrowStart,
+        xMax: lastTimestamp + 15 * 60 * 1000,
+        backgroundColor: 'rgba(128,128,128,0.08)',
+        borderWidth: 0,
+      };
+    }
+
+    const highTariffValue = parseFloat(highTariff);
+    if (!Number.isNaN(highTariffValue)) {
+      ann.highTariffLine = {
+        type: 'line' as const,
+        yMin: highTariffValue,
+        yMax: highTariffValue,
+        borderColor: 'rgba(128,128,128,0.8)',
+        borderWidth: 1,
+        borderDash: [4, 4] as [number, number],
+        label: {
+          display: true,
+          content: 'VT',
+          position: 'end' as const,
+          xAdjust: 10,
+        },
+      };
+    }
+
+    const lowTariffValue = parseFloat(lowTariff);
+    if (!Number.isNaN(lowTariffValue)) {
+      ann.lowTariffLine = {
+        type: 'line' as const,
+        yMin: lowTariffValue,
+        yMax: lowTariffValue,
+        borderColor: 'rgba(128,128,128,0.8)',
+        borderWidth: 1,
+        borderDash: [4, 4] as [number, number],
+        label: {
+          display: true,
+          content: ' NT',
+          position: 'end' as const,
+          xAdjust: 10,
+        },
+      };
+    }
+
+    return ann;
+  }, [now, labelContent, chartPoints, tomorrowStart, highTariff, lowTariff]);
 
   const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     layout: {
       padding: {
         top: 30,
