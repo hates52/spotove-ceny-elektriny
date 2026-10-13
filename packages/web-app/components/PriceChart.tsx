@@ -326,7 +326,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         grid: {
           display: false,
         },
-        beginAtZero: false,
+        beginAtZero: true,
       },
     },
   }), [annotations, dateRange]);
