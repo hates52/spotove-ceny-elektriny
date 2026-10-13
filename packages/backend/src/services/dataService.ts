@@ -18,8 +18,17 @@ export async function getHistoricalData(startDate: string, endDate: string) {
 }
 
 export async function getAvailableDates() {
-  const dates = await getFreezePriceDates();
-  return { dates, dataSource: getDataSourceInfo() };
+  const allDates = await getFreezePriceDates();
+  const datesWithData = [];
+  
+  for (const dateStr of allDates) {
+    const data = await getFreezePriceData(dateStr);
+    if (data && data.data && data.data.length > 0) {
+      datesWithData.push(dateStr);
+    }
+  }
+  
+  return { dates: datesWithData, dataSource: getDataSourceInfo() };
 }
 
 export async function getTodayAndTomorrowData() {
