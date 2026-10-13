@@ -17,13 +17,13 @@ export async function ensureFreezePriceDir(): Promise<void> {
   }
 }
 
-export async function saveFreezePriceData(data: { date: string; data: any[] }): Promise<void> {
+export async function saveFreezePriceData(data: HourlyPriceData): Promise<void> {
   await ensureFreezePriceDir();
   const filepath = path.join(DATA_DIR, `${data.date}.json`);
   await fs.writeFile(filepath, JSON.stringify(data, null, 2));
 }
 
-export async function getFreezePriceData(date: string): Promise<{ date: string; data: any[] } | null> {
+export async function getFreezePriceData(date: string): Promise<HourlyPriceData | null> {
   await ensureFreezePriceDir();
   const filepath = path.join(DATA_DIR, `${date}.json`);
   try {

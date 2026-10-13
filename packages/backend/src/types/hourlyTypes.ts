@@ -11,4 +11,5 @@ export interface HourlyPriceEntry {
 export interface HourlyPriceData {
   date: string;
   data: HourlyPriceEntry[];
+  data_source?: string;
 }

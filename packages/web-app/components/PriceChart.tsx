@@ -27,6 +27,7 @@ const formatDateRange = (start: string, end: string) => {
 
 import { fetchCurrentPrice } from '@/app/lib/api';
 import { fetchTodayAndTomorrowData } from '@/app/lib/api';
+import { fetchDataSourceInfo, DataSourceInfo } from '@/app/lib/api';
 import { HourlyPriceEntry, HourlyPriceData } from '@/lib/hourlyTypes';
 import { getCookie, setCookie } from '@/lib/cookies';
 
@@ -53,6 +54,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPrice, setCurrentPrice] = useState<CurrentPrice | null>(null);
+  const [dataSource, setDataSource] = useState<DataSourceInfo | null>(null);
   const [currency, setCurrency] = useState<'CZK' | 'EUR'>(() => {
     const cookie = getCookie('spot_currency');
     return cookie === 'EUR' ? 'EUR' : 'CZK';
@@ -107,6 +109,10 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   useEffect(() => {
     loadData();
   }, []);
+
+  // useEffect(() => {
+  //   fetchDataSourceInfo().then(setDataSource).catch(console.error);
+  // }, []);
 
   useEffect(() => {
     const fetchCurrent = async () => {
@@ -321,6 +327,25 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
 
   return (
     <div className="w-full p-4">
+      {dataSource && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-800">Zdroj dat:</span>
+              <a
+                href={dataSource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline font-medium"
+              >
+                {dataSource.name}
+              </a>
+            </div>
+            <span className="text-xs text-blue-600">{dataSource.description}</span>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm text-gray-600">
           {actualPrice !== null ? (

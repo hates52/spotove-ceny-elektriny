@@ -1,7 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { fetchCurrentPrice, fetchAndStoreHourlyPrices } from '../services/priceService';
+import { fetchCurrentPrice, fetchAndStoreHourlyPrices, getDataSourceInfo } from '../services/priceService';
 
 const router = Router();
+
+router.get('/data-source', async (_req: Request, res: Response) => {
+  try {
+    res.json(getDataSourceInfo());
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch data source info' });
+  }
+});
 
 router.get('/current', async (_req: Request, res: Response) => {
   try {

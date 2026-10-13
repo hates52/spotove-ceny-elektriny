@@ -1,4 +1,5 @@
 import { getFreezePriceData, getFreezePriceDates } from '../lib/storage';
+import { getDataSourceInfo } from './priceService';
 
 export async function getHistoricalData(startDate: string, endDate: string) {
   const start = new Date(startDate);
@@ -13,11 +14,12 @@ export async function getHistoricalData(startDate: string, endDate: string) {
     }
     current.setDate(current.getDate() + 1);
   }
-  return result;
+  return { data: result, dataSource: getDataSourceInfo() };
 }
 
 export async function getAvailableDates() {
-  return getFreezePriceDates();
+  const dates = await getFreezePriceDates();
+  return { dates, dataSource: getDataSourceInfo() };
 }
 
 export async function getTodayAndTomorrowData() {
@@ -40,6 +42,7 @@ export async function getTodayAndTomorrowData() {
     return {
       days: [todayData, tomorrowData].filter(Boolean),
       dateRange: { start: todayStr, end: tomorrowStr },
+      dataSource: getDataSourceInfo(),
     };
   }
 
@@ -54,5 +57,6 @@ export async function getTodayAndTomorrowData() {
   return {
     days: [yesterdayData, todayData].filter(Boolean),
     dateRange: { start: yesterdayStr, end: todayStr },
+    dataSource: getDataSourceInfo(),
   };
 }
