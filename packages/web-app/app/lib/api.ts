@@ -58,15 +58,23 @@ export async function fetchAvailableDates(): Promise<string[]> {
   return result.dates || [];
 }
 
-export async function fetchHistoricalData(startDate: string, endDate: string) {
+export interface HistoricalDataResponse {
+  data: Array<{ 
+    date: string; 
+    data: Array<{ hour: number; minute: number; priceEur: number; priceCZK: number; level: string; levelNum: number; levelNum96: number }>; 
+    data_source?: string;
+  }>;
+  dataSource: DataSourceInfo;
+}
+
+export async function fetchHistoricalData(startDate: string, endDate: string): Promise<HistoricalDataResponse> {
   const response = await fetch(`${API_BASE_URL}/api/price/historical?startDate=${startDate}&endDate=${endDate}`, {
     cache: 'no-store',
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch historical data: ${response.status}`);
   }
-  const result = await response.json();
-  return result.data || [];
+  return response.json();
 }
 
 export async function fetchAndStoreHourlyPrices() {

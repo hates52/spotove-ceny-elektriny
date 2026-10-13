@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-import { fetchAvailableDates, fetchHistoricalData } from '@/app/lib/api';
+import { fetchAvailableDates, fetchHistoricalData, DataSourceInfo } from '@/app/lib/api';
 import { HourlyPriceEntry } from '@/lib/hourlyTypes';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -61,6 +61,7 @@ export default function DailyCalendarAndChart() {
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
   const [loadingDay, setLoadingDay] = useState(false);
   const [currency, setCurrency] = useState<'CZK' | 'EUR'>('CZK');
+  const [dataSource, setDataSource] = useState<DataSourceInfo | null>(null);
 
   useEffect(() => {
     const loadDates = async () => {
@@ -79,10 +80,14 @@ export default function DailyCalendarAndChart() {
 
   const availableSet = useMemo(() => new Set(availableDates), [availableDates]);
 
-  const loadDayData = async (dateStr: string) => {
+const loadDayData = async (dateStr: string) => {
     setLoadingDay(true);
     try {
-      const data = await fetchHistoricalData(dateStr, dateStr);
+      const response = await fetchHistoricalData(dateStr, dateStr);
+      const data = response.data;
+      if (response.dataSource) {
+        setDataSource(response.dataSource);
+      }
       const points: ChartPoint[] = [];
       if (data && data.length > 0) {
         const dayData = data[0];
@@ -98,10 +103,12 @@ export default function DailyCalendarAndChart() {
         });
         points.sort((a, b) => a.timestamp - b.timestamp);
       }
+
       setChartPoints(points);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load day data');
+      setDataSource(null);
     } finally {
       setLoadingDay(false);
     }
@@ -267,6 +274,14 @@ export default function DailyCalendarAndChart() {
           <div className="h-80 bg-gray-50 rounded p-2">
             {!selectedDate && <div className="flex items-center justify-center h-full text-gray-500">Klikněte na dostupný den v kalendáři.</div>}
             {selectedDate && loadingDay && <div className="flex items-center justify-center h-full text-gray-500">Načítání dat...</div>}
+            {selectedDate && !loadingDay && dataSource && (
+              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                <span className="font-medium text-blue-800">Zdroj dat: </span>
+                <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {dataSource.name}
+                </a>
+              </div>
+            )}
             {selectedDate && !loadingDay && chartPoints.length > 0 && <Bar data={chartData} options={chartOptions} />}
             {selectedDate && !loadingDay && chartPoints.length === 0 && <div className="flex items-center justify-center h-full text-gray-500">Pro tento den nejsou k dispozici žádná data.</div>}
           </div>

@@ -15,7 +15,7 @@ interface DataSourceInfo {
 const DATA_SOURCES: Record<DataSource, DataSourceInfo> = {
   spotovaelektrina: {
     id: 'spotovaelektrina',
-    name: 'Spotová elektrína',
+    name: 'Spotová elektřina',
     url: 'https://spotovaelektrina.cz',
     description: 'Aggregátor spotových cen elektřiny z OTE',
   },

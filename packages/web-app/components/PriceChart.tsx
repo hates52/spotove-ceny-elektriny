@@ -192,11 +192,24 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   }), [currency, chartPoints, dynamicBarThickness]);
 
   const now = Date.now();
-  const currentPoint = chartPoints.reduce((prev, curr) =>
-    Math.abs(curr.timestamp - now) < Math.abs(prev.timestamp - now) ? curr : prev
-  , chartPoints[0]);
+  // Calculate current quarter-hour (15-min interval)
+  const nowDate = new Date();
+  const currentQuarterHour = Math.floor(nowDate.getMinutes() / 15) * 15;
+  const currentQuarterTimestamp = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate(),
+    nowDate.getHours(),
+    currentQuarterHour,
+    0
+  ).getTime();
+
+  // Find exact match for current quarter-hour
+  const currentPoint = chartPoints.find(
+    (p) => p.timestamp === currentQuarterTimestamp
+  );
   const chartCurrentPrice = currentPoint ? (currency === 'CZK' ? currentPoint.priceCZK : currentPoint.priceEur) : null;
-  const labelContent = 'now';
+  const labelContent = chartCurrentPrice !== null ? `${chartCurrentPrice.toFixed(2)} ${currency}/MWh` : 'now';
 
   const annotations = useMemo<Record<string, any>>(() => {
     const ann: Record<string, any> = {
