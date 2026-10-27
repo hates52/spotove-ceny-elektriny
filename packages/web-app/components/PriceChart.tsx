@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -50,6 +50,8 @@ interface CurrentPrice {
 }
 
 export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps) {
+  const chartRef = useRef<any>(null);
+  const [plotArea, setPlotArea] = useState({ left: 0, right: 0 });
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +148,44 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   useEffect(() => {
     setCookie('spot_low_tariff', lowTariff);
   }, [lowTariff]);
+
+  useEffect(() => {
+    const updatePlotArea = () => {
+      const chart = chartRef.current;
+      if (chart?.chartInstance?.chartArea) {
+        setPlotArea({
+          left: chart.chartInstance.chartArea.left,
+          right: chart.chartInstance.chartArea.right,
+        });
+      } else if (chart?.chartArea) {
+        setPlotArea({
+          left: chart.chartArea.left,
+          right: chart.chartArea.right,
+        });
+      } else if (chart?.current?.chartArea) {
+        setPlotArea({
+          left: chart.current.chartArea.left,
+          right: chart.current.chartArea.right,
+        });
+      } else {
+        // Fallback - try to get from canvas
+        const canvas = chart?.canvas || document.querySelector('canvas');
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          setPlotArea({ left: 70, right: 40 });
+        }
+      }
+    };
+    updatePlotArea();
+    const timeout = setTimeout(updatePlotArea, 200);
+    const timeout2 = setTimeout(updatePlotArea, 500);
+    window.addEventListener('resize', updatePlotArea);
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+      window.removeEventListener('resize', updatePlotArea);
+    };
+  }, [chartPoints, currency]);
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -282,6 +322,8 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     layout: {
       padding: {
         top: 30,
+        left: 20,
+        right: 20,
       },
     },
     plugins: {
@@ -423,9 +465,53 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
           Zatím nejsou k dispozici žádná data.
         </div>
       ) : (
-        <div className="h-96">
-          <Bar data={chartData} options={options} />
-        </div>
+        <>
+          <div className="h-96">
+            <Bar ref={chartRef} data={chartData} options={options} />
+          </div>
+          <div className="mt-3 pl-[85px] pr-[40px]">
+            <div
+              className="h-2 w-full"
+              style={{
+                background: `linear-gradient(to right, ${(() => {
+                  const values = chartPoints.map((d) =>
+                    currency === 'CZK' ? d.priceCZK : d.priceEur
+                  );
+                  const min = Math.min(...values);
+                  const max = Math.max(...values);
+
+                  const getInterpolatedColor = (value: number) => {
+                    if (max === min) return 'rgb(234, 179, 8)';
+                    const t = (value - min) / (max - min);
+                    if (t <= 0) return 'rgb(34, 197, 94)';
+                    if (t >= 1) return 'rgb(239, 68, 68)';
+                    if (t < 0.5) {
+                      const s = t / 0.5;
+                      const r = Math.round(34 + (234 - 34) * s);
+                      const g = Math.round(197 + (179 - 197) * s);
+                      const b = Math.round(94 + (8 - 94) * s);
+                      return `rgb(${r}, ${g}, ${b})`;
+                    } else {
+                      const s = (t - 0.5) / 0.5;
+                      const r = Math.round(234 + (239 - 234) * s);
+                      const g = Math.round(179 + (68 - 179) * s);
+                      const b = Math.round(8 + (68 - 8) * s);
+                      return `rgb(${r}, ${g}, ${b})`;
+                    }
+                  };
+
+                  return chartPoints
+                    .map((d, i) => {
+                      const value = currency === 'CZK' ? d.priceCZK : d.priceEur;
+                      const pct = (i / Math.max(1, chartPoints.length - 1)) * 100;
+                      return `${getInterpolatedColor(value)} ${pct}%`;
+                    })
+                    .join(', ');
+                })()})`,
+              }}
+            />
+          </div>
+        </>
       )}
 
       <div className="mt-4 p-3 bg-gray-50 rounded border text-sm">
