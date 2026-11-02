@@ -3,6 +3,7 @@ import './globals.css';
 import AutoRefresh from '../components/AutoRefresh';
 import HourlyPriceScheduler from '../components/HourlyPriceScheduler';
 import AuthProvider from '@/components/AuthProvider';
+import RequireAuth from '@/components/RequireAuth';
 
 export const viewport: Viewport = {
   width: 'device-width',

@@ -154,7 +154,7 @@ export default function DailyCalendarAndChart() {
                 className={`p-2 rounded text-center text-sm ${
                   day.available
                     ? isSelected
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-green-100 hover:bg-green-200 text-gray-800 cursor-pointer'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
