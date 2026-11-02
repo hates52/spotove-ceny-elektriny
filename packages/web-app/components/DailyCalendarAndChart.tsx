@@ -5,6 +5,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { fetchAvailableDates, fetchHistoricalData, DataSourceInfo } from '@/app/lib/api';
+import { useAuth } from 'react-oidc-context';
 import { HourlyPriceEntry } from '@/lib/hourlyTypes';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -37,6 +38,8 @@ const getLevelBorderColor = (level: string) => {
 };
 
 export default function DailyCalendarAndChart() {
+  const auth = useAuth();
+  const token = auth.user?.access_token;
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function DailyCalendarAndChart() {
   useEffect(() => {
     const loadDates = async () => {
       try {
-        const dates = await fetchAvailableDates();
+        const dates = await fetchAvailableDates(token);
         setAvailableDates(dates || []);
         setError(null);
       } catch (err) {
@@ -59,15 +62,16 @@ export default function DailyCalendarAndChart() {
         setLoadingDates(false);
       }
     };
+    if (!token) return;
     loadDates();
-  }, []);
+  }, [token]);
 
   const availableSet = useMemo(() => new Set(availableDates), [availableDates]);
 
   const loadDayData = async (dateStr: string) => {
     setLoadingDay(true);
     try {
-      const response = await fetchHistoricalData(dateStr, dateStr);
+      const response = await fetchHistoricalData(dateStr, dateStr, token);
       const data = response.data;
       const points: ChartPoint[] = [];
       if (data && data.length > 0) {

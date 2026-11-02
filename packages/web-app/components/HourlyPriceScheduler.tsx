@@ -2,8 +2,11 @@
 
 import { useEffect } from 'react';
 import { fetchAndStoreHourlyPrices } from '@/app/lib/api';
+import { useAuth } from 'react-oidc-context';
 
 export default function HourlyPriceScheduler() {
+  const auth = useAuth();
+  const token = auth.user?.access_token;
   useEffect(() => {
     const getDelayToNextHour = () => {
       const now = new Date();
@@ -17,8 +20,9 @@ export default function HourlyPriceScheduler() {
     };
 
     const runFetch = async () => {
+      if (!token) return;
       try {
-        await fetchAndStoreHourlyPrices();
+        await fetchAndStoreHourlyPrices(token);
       } catch (err) {
         console.error('[HourlyPriceScheduler] fetch failed', err);
       }

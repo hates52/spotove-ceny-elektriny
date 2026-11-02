@@ -1,5 +1,9 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+function authHeaders(token?: string | null): HeadersInit | undefined {
+  return token ? { Authorization: `Bearer ${token}` } : undefined;
+}
+
 export interface DataSourceInfo {
   id: 'spotovaelektrina' | 'ote';
   name: string;
@@ -17,9 +21,10 @@ export interface TodayTomorrowData {
   dataSource: DataSourceInfo;
 }
 
-export async function fetchCurrentPrice(): Promise<{ priceCZK: number; priceEUR: number; level: string; levelNum: number; dataSource?: DataSourceInfo }> {
+export async function fetchCurrentPrice(token?: string | null): Promise<{ priceCZK: number; priceEUR: number; level: string; levelNum: number; dataSource?: DataSourceInfo }> {
   const response = await fetch(`${API_BASE_URL}/api/current-price`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch price: ${response.status}`);
@@ -27,9 +32,10 @@ export async function fetchCurrentPrice(): Promise<{ priceCZK: number; priceEUR:
   return response.json();
 }
 
-export async function fetchTodayAndTomorrowData(): Promise<TodayTomorrowData> {
+export async function fetchTodayAndTomorrowData(token?: string | null): Promise<TodayTomorrowData> {
   const response = await fetch(`${API_BASE_URL}/api/price/today-tomorrow`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch data: ${response.status}`);
@@ -37,9 +43,10 @@ export async function fetchTodayAndTomorrowData(): Promise<TodayTomorrowData> {
   return response.json();
 }
 
-export async function fetchDataSourceInfo(): Promise<DataSourceInfo> {
+export async function fetchDataSourceInfo(token?: string | null): Promise<DataSourceInfo> {
   const response = await fetch(`${API_BASE_URL}/api/price/data-source`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch data source: ${response.status}`);
@@ -47,9 +54,10 @@ export async function fetchDataSourceInfo(): Promise<DataSourceInfo> {
   return response.json();
 }
 
-export async function fetchAvailableDates(): Promise<string[]> {
+export async function fetchAvailableDates(token?: string | null): Promise<string[]> {
   const response = await fetch(`${API_BASE_URL}/api/price/dates`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch dates: ${response.status}`);
@@ -67,9 +75,10 @@ export interface HistoricalDataResponse {
   dataSource: DataSourceInfo;
 }
 
-export async function fetchHistoricalData(startDate: string, endDate: string): Promise<HistoricalDataResponse> {
+export async function fetchHistoricalData(startDate: string, endDate: string, token?: string | null): Promise<HistoricalDataResponse> {
   const response = await fetch(`${API_BASE_URL}/api/price/historical?startDate=${startDate}&endDate=${endDate}`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch historical data: ${response.status}`);
@@ -77,9 +86,10 @@ export async function fetchHistoricalData(startDate: string, endDate: string): P
   return response.json();
 }
 
-export async function fetchAndStoreHourlyPrices() {
+export async function fetchAndStoreHourlyPrices(token?: string | null) {
   const response = await fetch(`${API_BASE_URL}/api/price/hourly`, {
     cache: 'no-store',
+    headers: authHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch hourly prices: ${response.status}`);

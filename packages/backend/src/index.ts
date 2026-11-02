@@ -3,6 +3,7 @@ import cors from 'cors';
 import priceRoutes from './routes/price';
 import instanceRoutes from './routes/instance';
 import authRoutes from './routes/auth';
+import { requireAuth } from './middleware/auth';
 import path from 'path';
 import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
@@ -38,14 +39,21 @@ async function ensureTodaysData(): Promise<void> {
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} from ${req.get('origin') || 'no-origin'}`);
-  next();
-});
-
 app.use(cors());
 app.use(express.json());
+app.use('/api', (req, res, next) => {
+  if (req.path === '/instance') return next();
+  return requireAuth(req as any, res, next);
+});
+app.use('/api', (req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const u = (req as any).user || {};
+    const user = u.preferred_username || u.email || u.unique_name || u.name || u.sub || 'anonymous';
+    console.log(`[audit] ${new Date().toISOString()} user=${user} ${req.method} ${req.originalUrl} status=${res.statusCode} duration=${Date.now()-start}ms`);
+  });
+  next();
+});
 
 app.use('/api/price', priceRoutes);
 app.use('/api/instance', instanceRoutes);

@@ -30,6 +30,7 @@ import { fetchTodayAndTomorrowData } from '@/app/lib/api';
 import { fetchDataSourceInfo, DataSourceInfo } from '@/app/lib/api';
 import { HourlyPriceEntry, HourlyPriceData } from '@/lib/hourlyTypes';
 import { getCookie, setCookie } from '@/lib/cookies';
+import { useAuth } from 'react-oidc-context';
 
 interface PriceChartProps {
   lastLevel: string | null;
@@ -50,6 +51,8 @@ interface CurrentPrice {
 }
 
 export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps) {
+  const auth = useAuth();
+  const token = auth.user?.access_token;
   const chartRef = useRef<any>(null);
   const [plotArea, setPlotArea] = useState({ left: 0, right: 0 });
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
@@ -72,7 +75,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
 
   const loadData = async () => {
     try {
-      const { days, dateRange } = await fetchTodayAndTomorrowData();
+      const { days, dateRange } = await fetchTodayAndTomorrowData(token);
       const points: ChartPoint[] = [];
 
       const addDay = (dateStr: string, entries: HourlyPriceEntry[] | undefined) => {
@@ -109,8 +112,9 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   };
 
   useEffect(() => {
+    if (!token) return;
     loadData();
-  }, []);
+  }, [token]);
 
   // useEffect(() => {
   //   fetchDataSourceInfo().then(setDataSource).catch(console.error);
@@ -119,7 +123,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   useEffect(() => {
     const fetchCurrent = async () => {
       try {
-        const price = await fetchCurrentPrice();
+        const price = await fetchCurrentPrice(token);
         setCurrentPrice({
           priceCZK: price.priceCZK,
           priceEUR: price.priceEUR,
