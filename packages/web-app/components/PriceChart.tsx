@@ -382,50 +382,51 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
 
   return (
     <div className="w-full p-4">
-      {dataSource && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-800">Zdroj dat:</span>
-              <a
-                href={dataSource.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline font-medium"
-              >
-                {dataSource.name}
-              </a>
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              {dataSource && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-800">Zdroj dat:</span>
+                  <a
+                    href={dataSource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline font-medium"
+                  >
+                    {dataSource.name}
+                  </a>
+                </div>
+              )}
+              <div className="text-sm text-gray-700">
+                {actualPrice !== null ? (
+                  <>
+                    Aktuální cena: <strong>{actualPrice.toFixed(2)} {currency}/MWh</strong>
+                  </>
+                ) : (
+                  'Načítání aktuální ceny...'
+                )}
+              </div>
             </div>
-            <span className="text-xs text-blue-600">{dataSource.description}</span>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-700 mr-2">Měna:</span>
+              {(['CZK', 'EUR'] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCurrency(c)}
+                  className={`mx-1 px-2 py-1 text-xs rounded ${
+                    currency === c
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
-        <div className="text-sm text-gray-600">
-          {actualPrice !== null ? (
-            <>
-              Aktuální cena: <strong>{actualPrice.toFixed(2)} {currency}/MWh</strong>
-            </>
-          ) : (
-            'Načítání aktuální ceny...'
-          )}
-        </div>
-        <div>
-          <span className="text-sm text-gray-700 mr-2">Měna:</span>
-          {(['CZK', 'EUR'] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => setCurrency(c)}
-              className={`mx-1 px-3 py-1 text-sm rounded ${
-                currency === c
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {c}
-            </button>
-          )          )}
+          {dataSource && <div className="text-xs text-blue-600">{dataSource.description}</div>}
         </div>
       </div>
 

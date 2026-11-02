@@ -1,15 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  TimeScale,
-} from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { fetchAvailableDates, fetchHistoricalData, DataSourceInfo } from '@/app/lib/api';
@@ -28,27 +20,19 @@ interface ChartPoint {
 
 const getLevelColor = (level: string) => {
   switch (level) {
-    case 'low':
-      return 'rgba(34, 197, 94, 0.7)';
-    case 'medium':
-      return 'rgba(234, 179, 8, 0.7)';
-    case 'high':
-      return 'rgba(239, 68, 68, 0.7)';
-    default:
-      return 'rgba(59, 130, 246, 0.6)';
+    case 'low': return 'rgba(34, 197, 94, 0.7)';
+    case 'medium': return 'rgba(234, 179, 8, 0.7)';
+    case 'high': return 'rgba(239, 68, 68, 0.7)';
+    default: return 'rgba(59, 130, 246, 0.6)';
   }
 };
 
 const getLevelBorderColor = (level: string) => {
   switch (level) {
-    case 'low':
-      return 'rgba(34, 197, 94, 1)';
-    case 'medium':
-      return 'rgba(234, 179, 8, 1)';
-    case 'high':
-      return 'rgba(239, 68, 68, 1)';
-    default:
-      return 'rgba(59, 130, 246, 1)';
+    case 'low': return 'rgba(34, 197, 94, 1)';
+    case 'medium': return 'rgba(234, 179, 8, 1)';
+    case 'high': return 'rgba(239, 68, 68, 1)';
+    default: return 'rgba(59, 130, 246, 1)';
   }
 };
 
@@ -80,30 +64,33 @@ export default function DailyCalendarAndChart() {
 
   const availableSet = useMemo(() => new Set(availableDates), [availableDates]);
 
-const loadDayData = async (dateStr: string) => {
+  const loadDayData = async (dateStr: string) => {
     setLoadingDay(true);
     try {
       const response = await fetchHistoricalData(dateStr, dateStr);
       const data = response.data;
-      if (response.dataSource) {
-        setDataSource(response.dataSource);
-      }
       const points: ChartPoint[] = [];
       if (data && data.length > 0) {
         const dayData = data[0];
+        const dsId = (dayData as any).data_source;
+        if (dsId) {
+          const map: any = {
+            spotovaelektrina: { id: 'spotovaelektrina', name: 'Spotová elektřina', url: 'https://spotovaelektrina.cz', description: 'Aggregátor spotových cen elektřiny z OTE' },
+            ote: { id: 'ote', name: 'OTE - Operátor trhu s elektřinou', url: 'https://www.ote-cr.cz', description: 'Oficiální data z veřejného rozhraní OTE (SOAP API)' },
+          };
+          setDataSource(map[dsId] || null);
+        } else if (response.dataSource) {
+          setDataSource(response.dataSource);
+        } else {
+          setDataSource(null);
+        }
         const [year, month, day] = dayData.date.split('-').map(Number);
         (dayData.data as HourlyPriceEntry[]).forEach((entry) => {
           const timestamp = new Date(year, month - 1, day, entry.hour, entry.minute, 0).getTime();
-          points.push({
-            timestamp,
-            priceCZK: entry.priceCZK,
-            priceEur: entry.priceEur,
-            level: entry.level,
-          });
+          points.push({ timestamp, priceCZK: entry.priceCZK, priceEur: entry.priceEur, level: entry.level });
         });
         points.sort((a, b) => a.timestamp - b.timestamp);
       }
-
       setChartPoints(points);
       setError(null);
     } catch (err) {
@@ -127,7 +114,7 @@ const loadDayData = async (dateStr: string) => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay(); // 0 = Sunday in JS, but we want Monday? locale cs uses Monday; but easier to just render
+    const startDayOfWeek = firstDay.getDay();
     const days: Array<{ date: Date; dateStr: string; available: boolean }> = [];
 
     for (let i = 1; i <= daysInMonth; i++) {
@@ -136,16 +123,10 @@ const loadDayData = async (dateStr: string) => {
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       const dateStr = `${yyyy}-${mm}-${dd}`;
-      days.push({
-        date: d,
-        dateStr,
-        available: availableSet.has(dateStr),
-      });
+      days.push({ date: d, dateStr, available: availableSet.has(dateStr) });
     }
 
-    // Pad start for Monday-first view (approximate)
-    const startOffset = (startDayOfWeek + 6) % 7; // convert Sunday=0 to Monday=0
-
+    const startOffset = (startDayOfWeek + 6) % 7;
     const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
     const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
@@ -177,7 +158,6 @@ const loadDayData = async (dateStr: string) => {
                       : 'bg-green-100 hover:bg-green-200 text-gray-800 cursor-pointer'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
-                title={day.available ? 'Klikněte pro zobrazení grafu dne' : 'Nejsou dostupná data'}
               >
                 {day.date.getDate()}
               </button>
@@ -193,19 +173,14 @@ const loadDayData = async (dateStr: string) => {
   };
 
   const chartData = useMemo(() => ({
-    datasets: [
-      {
-        label: currency,
-        data: chartPoints.map((d) => ({
-          x: d.timestamp,
-          y: currency === 'CZK' ? d.priceCZK : d.priceEur,
-        })),
-        backgroundColor: chartPoints.map((d) => getLevelColor(d.level)),
-        borderColor: chartPoints.map((d) => getLevelBorderColor(d.level)),
-        borderWidth: 0,
-        barThickness: Math.max(2, Math.floor(600 / Math.max(1, chartPoints.length) - 0.5)),
-      },
-    ],
+    datasets: [{
+      label: currency,
+      data: chartPoints.map((d) => ({ x: d.timestamp, y: currency === 'CZK' ? d.priceCZK : d.priceEur })),
+      backgroundColor: chartPoints.map((d) => getLevelColor(d.level)),
+      borderColor: chartPoints.map((d) => getLevelBorderColor(d.level)),
+      borderWidth: 0,
+      barThickness: Math.max(2, Math.floor(600 / Math.max(1, chartPoints.length) - 0.5)),
+    }],
   }), [currency, chartPoints]);
 
   const chartOptions = useMemo(() => ({
@@ -226,63 +201,47 @@ const loadDayData = async (dateStr: string) => {
     scales: {
       x: {
         type: 'time' as const,
-        time: {
-          unit: 'hour' as const,
-          displayFormats: { hour: 'HH:mm' },
-          tooltipFormat: 'HH:mm',
-        },
+        time: { unit: 'hour' as const, displayFormats: { hour: 'HH:mm' }, tooltipFormat: 'HH:mm' },
         grid: { display: false },
         ticks: { display: true, maxRotation: 0, autoSkip: true },
       },
-      y: {
-        grid: { display: false },
-        beginAtZero: false,
-      },
+      y: { grid: { display: false }, beginAtZero: true },
     },
   }), [selectedDate]);
 
   return (
     <div className="w-full mt-8 p-4 bg-white rounded shadow">
       <h2 className="text-lg font-semibold mb-4">Detailní pohled na den</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">{error}</div>
-      )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>{loadingDates ? <div className="text-gray-500">Načítání kalendáře...</div> : renderCalendar()}</div>
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {selectedDate ? `Vybraný den: ${format(new Date(selectedDate), 'dd.MM.yyyy', { locale: cs })}` : 'Vyberte den v kalendáři'}
-            </div>
-            {selectedDate && (
-              <div>
-                <span className="text-sm text-gray-700 mr-2">Měna:</span>
-                {(['CZK', 'EUR'] as const).map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCurrency(c)}
-                    className={`mx-1 px-2 py-1 text-xs rounded ${
-                      currency === c ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="h-80 bg-gray-50 rounded p-2">
+      {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">{error}</div>}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="flex flex-col">
+          {loadingDates ? <div className="text-gray-500">Načítání kalendáře...</div> : <div className="min-h-[448px]">{renderCalendar()}</div>}
+        </div>
+        <div className="flex flex-col">
+          <div className="h-[400px] bg-gray-50 rounded p-2">
             {!selectedDate && <div className="flex items-center justify-center h-full text-gray-500">Klikněte na dostupný den v kalendáři.</div>}
             {selectedDate && loadingDay && <div className="flex items-center justify-center h-full text-gray-500">Načítání dat...</div>}
-            {selectedDate && !loadingDay && dataSource && (
-              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-                <span className="font-medium text-blue-800">Zdroj dat: </span>
-                <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  {dataSource.name}
-                </a>
-              </div>
+            {selectedDate && !loadingDay && chartPoints.length > 0 && (
+              <>
+                <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm flex items-center justify-between">
+                  <span>
+                    <span className="font-medium text-blue-800">Zdroj dat: </span>
+                    {dataSource ? (
+                      <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{dataSource.name}</a>
+                    ) : '-'}
+                  </span>
+                  <div>
+                    <span className="text-sm text-gray-700 mr-2">Měna:</span>
+                    {(['CZK', 'EUR'] as const).map((c) => (
+                      <button key={c} onClick={() => setCurrency(c)} className={`mx-1 px-2 py-1 text-xs rounded ${currency === c ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{c}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-[calc(100%-48px)]">
+                  <Bar data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
+                </div>
+              </>
             )}
-            {selectedDate && !loadingDay && chartPoints.length > 0 && <Bar data={chartData} options={chartOptions} />}
             {selectedDate && !loadingDay && chartPoints.length === 0 && <div className="flex items-center justify-center h-full text-gray-500">Pro tento den nejsou k dispozici žádná data.</div>}
           </div>
         </div>
