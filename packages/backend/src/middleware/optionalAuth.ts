@@ -1,0 +1,75 @@
+import { Request, Response, NextFunction } from 'express';
+import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
+
+const ISSUER = process.env.OIDC_ISSUER;
+const AUDIENCE = process.env.OIDC_AUDIENCE || process.env.AZURE_AD_AUDIENCE;
+const REQUIRED_GROUP = process.env.OIDC_REQUIRED_GROUP || process.env.AZURE_AD_REQUIRED_GROUP || '';
+const TENANT_ID = process.env.AZURE_TENANT_ID;
+const JWKS_URL = process.env.OIDC_JWKS_URL || 
+  (TENANT_ID ? `https://login.microsoftonline.com/${TENANT_ID}/discovery/v2.0/keys` : undefined) ||
+  (ISSUER ? `${ISSUER}/discovery/v2.0/keys` : undefined) ||
+  (ISSUER ? `${ISSUER}/.well-known/jwks.json` : undefined);
+
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+if (JWKS_URL) {
+  jwks = createRemoteJWKSet(new URL(JWKS_URL));
+}
+
+export interface AuthRequest extends Request {
+  user?: JWTPayload & { groups?: string[] };
+  authenticated?: boolean;
+}
+
+export async function optionalAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!jwks) {
+      req.authenticated = false;
+      return next();
+    }
+
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) {
+      req.authenticated = false;
+      return next();
+    }
+
+    const verifyOptions: any = {};
+    if (ISSUER) {
+      verifyOptions.issuer = ISSUER;
+    } else if (TENANT_ID) {
+      verifyOptions.issuer = [
+        `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
+        `https://sts.windows.net/${TENANT_ID}/`,
+      ];
+    }
+    if (AUDIENCE) verifyOptions.audience = AUDIENCE;
+
+    const { payload } = await jwtVerify(token, jwks, verifyOptions);
+
+    const groups = (payload.groups as string[]) || (payload.roles as string[]) || [];
+    
+    if (REQUIRED_GROUP) {
+      const hasGroup = groups.includes(REQUIRED_GROUP) || 
+                       (payload.wids && Array.isArray(payload.wids) && payload.wids.includes(REQUIRED_GROUP));
+      if (!hasGroup) {
+        req.authenticated = false;
+        return next();
+      }
+    }
+
+    req.user = { ...payload, groups };
+    req.authenticated = true;
+    next();
+  } catch (err) {
+    req.authenticated = false;
+    next();
+  }
+}
+
+export function requireAuthStrict(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.authenticated || !req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}

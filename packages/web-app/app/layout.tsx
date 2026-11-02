@@ -2,6 +2,7 @@ import type { Viewport } from 'next';
 import './globals.css';
 import AutoRefresh from '../components/AutoRefresh';
 import HourlyPriceScheduler from '../components/HourlyPriceScheduler';
+import AuthProvider from '@/components/AuthProvider';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -16,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="cs">
       <body className="antialiased">
-        {children}
-        <AutoRefresh />
-        <HourlyPriceScheduler />
+        <AuthProvider>
+          {children}
+          <AutoRefresh />
+          <HourlyPriceScheduler />
+        </AuthProvider>
       </body>
     </html>
   );

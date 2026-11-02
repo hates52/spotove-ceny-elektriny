@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import priceRoutes from './routes/price';
 import instanceRoutes from './routes/instance';
+import authRoutes from './routes/auth';
 import path from 'path';
 import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
@@ -9,6 +10,7 @@ import { fetchAndStoreHourlyPrices } from './services/priceService';
 
 const rootDir = path.resolve(__dirname, '..', '..', '..');
 dotenv.config({ path: path.join(rootDir, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 function getTodayDateString(): string {
   const now = new Date();
@@ -44,6 +46,7 @@ app.use(express.json());
 
 app.use('/api/price', priceRoutes);
 app.use('/api/instance', instanceRoutes);
+app.use('/api/auth', authRoutes);
 app.get('/api/current-price', async (_req, res) => {
   try {
     const { fetchCurrentPrice } = await import('./services/priceService');
@@ -51,6 +54,18 @@ app.get('/api/current-price', async (_req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch price' });
+  }
+});
+app.get('/api/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) {
+      return res.status(401).json({ authenticated: false });
+    }
+    res.json({ authenticated: true });
+  } catch (error) {
+    res.status(401).json({ authenticated: false });
   }
 });
 
