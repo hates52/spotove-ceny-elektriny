@@ -4,17 +4,36 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from 'react-oidc-context';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 export default function CallbackPage() {
   const auth = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!auth.isLoading && auth.isAuthenticated) {
-      router.replace('/');
-    } else if (!auth.isLoading && auth.error) {
+    if (auth.isLoading) return;
+    if (auth.error) {
       router.replace('/?error=auth');
+      return;
     }
-  }, [auth.isLoading, auth.isAuthenticated, auth.error, router]);
+    if (!auth.isAuthenticated || !auth.user) return;
+
+    const token = auth.user.access_token;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) {
+          await auth.signoutRedirect();
+          return;
+        }
+        router.replace('/');
+      } catch {
+        await auth.signoutRedirect();
+      }
+    })();
+  }, [auth.isLoading, auth.isAuthenticated, auth.error, auth.user, router, auth]);
 
   return <div className="p-4">Signing in...</div>;
 }

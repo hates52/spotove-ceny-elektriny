@@ -9,7 +9,10 @@ import { getFreezePriceData } from './lib/storage';
 import { fetchAndStoreHourlyPrices } from './services/priceService';
 
 const rootDir = path.resolve(__dirname, '..', '..', '..');
+console.log('rootDir', rootDir, 'exists', require('fs').existsSync(path.join(rootDir,'.env')));
+dotenv.config();
 dotenv.config({ path: path.join(rootDir, '.env') });
+dotenv.config({ path: path.join(process.cwd(), '..', '..', '.env') });
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 function getTodayDateString(): string {
