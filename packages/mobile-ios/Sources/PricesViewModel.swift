@@ -17,6 +17,7 @@ final class PricesViewModel: ObservableObject {
 
     private let apiClient: PriceAPIClient
     private var reloadRequested = false
+    private var requestedDate: String?
 
     init(apiClient: PriceAPIClient) {
         self.apiClient = apiClient
@@ -45,6 +46,7 @@ final class PricesViewModel: ObservableObject {
     }
 
     func selectDay(_ day: HourlyPriceDay) {
+        requestedDate = nil
         selectedDate = day.date
         historicalDay = nil
         errorMessage = nil
@@ -52,6 +54,7 @@ final class PricesViewModel: ObservableObject {
 
     func selectDate(_ date: Date) async {
         let dateString = HourlyPriceDay.dateString(from: date)
+        requestedDate = dateString
 
         if let day = days.first(where: { $0.date == dateString }) {
             selectDay(day)
@@ -64,17 +67,17 @@ final class PricesViewModel: ObservableObject {
             errorMessage = nil
             return
         }
-        guard !isLoading else { return }
-
-        errorMessage = nil
-        isLoading = true
-        defer { isLoading = false }
 
         do {
-            historicalDay = try await apiClient.fetchHistoricalDay(date: dateString)
+            let day = try await apiClient.fetchHistoricalDay(date: dateString)
+            guard requestedDate == dateString else { return }
             selectedDate = dateString
+            historicalDay = day
+            errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            if requestedDate == dateString {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

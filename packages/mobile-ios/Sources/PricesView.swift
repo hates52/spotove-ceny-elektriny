@@ -250,7 +250,6 @@ struct PricesView: View {
 
                 Button("Zobrazit") {
                     isDatePickerPresented = false
-                    Task { await viewModel.selectDate(datePickerSelection) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!isDateAvailable(datePickerSelection))
@@ -311,6 +310,7 @@ struct PricesView: View {
 
         return Button {
             datePickerSelection = date
+            Task { await viewModel.selectDate(date) }
         } label: {
             Text(date, format: .dateTime.day())
                 .font(.body.weight(isSelected ? .semibold : .regular))
