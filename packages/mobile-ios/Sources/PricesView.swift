@@ -109,54 +109,69 @@ struct PricesView: View {
 
     private var pricesContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let day = viewModel.selectedDay {
-                    priceChart(for: day)
-                    priceList(for: day)
-                } else {
-                    ContentUnavailableView(
-                        "Pro tento den nejsou ceny",
-                        systemImage: "calendar.badge.exclamationmark",
-                        description: Text("Zkuste vybrat jiný den, pro který jsou data dostupná.")
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if let day = viewModel.selectedDay {
+                            priceChart(for: day)
+                            priceList(for: day)
+                        } else {
+                            ContentUnavailableView(
+                                "Pro tento den nejsou ceny",
+                                systemImage: "calendar.badge.exclamationmark",
+                                description: Text("Zkuste vybrat jiný den, pro který jsou data dostupná.")
+                            )
+                        }
+
+                        if let dataSourceName = viewModel.selectedDay?.dataSourceName {
+                            Text("Zdroj dat: \(dataSourceName)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical)
+                } header: {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let authError = authManager.errorMessage {
+                            Label(authError, systemImage: "exclamationmark.triangle")
+                                .font(.subheadline)
+                                .foregroundStyle(.orange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Label(errorMessage, systemImage: "exclamationmark.triangle")
+                                .font(.subheadline)
+                                .foregroundStyle(.orange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        if let snapshot = viewModel.currentPriceSnapshot {
+                            currentPrice(snapshot)
+                        }
+
+                        daySelector
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                    .background(.background)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 24)
+                            .onEnded { value in
+                                let verticalDistance = value.translation.height
+                                guard verticalDistance > 60,
+                                      verticalDistance > abs(value.translation.width) else {
+                                    return
+                                }
+                                Task { await viewModel.load() }
+                            }
                     )
                 }
-
-                if let dataSourceName = viewModel.selectedDay?.dataSourceName {
-                    Text("Zdroj dat: \(dataSourceName)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
             }
-            .padding(.horizontal)
-            .padding(.vertical)
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                if let authError = authManager.errorMessage {
-                    Label(authError, systemImage: "exclamationmark.triangle")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if let snapshot = viewModel.currentPriceSnapshot {
-                    currentPrice(snapshot)
-                }
-
-                daySelector
-            }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 12)
-            .background(.background)
         }
         .refreshable {
             await viewModel.load()
