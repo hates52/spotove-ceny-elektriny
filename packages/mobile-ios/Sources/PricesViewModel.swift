@@ -73,7 +73,7 @@ final class PricesViewModel: ObservableObject {
     }
 
     func load() async {
-        guard !isLoading else {
+        if isLoading {
             reloadRequested = true
             return
         }
@@ -109,12 +109,15 @@ final class PricesViewModel: ObservableObject {
                     selectedDate = days.first?.date
                     historicalDay = nil
                 }
+                cancellationRetries = 0
             } catch {
-                if Task.isCancelled {
+                if isCancellation(error) {
+                    if cancellationRetries < 2 {
+                        cancellationRetries += 1
+                        reloadRequested = true
+                        continue
+                    }
                     return
-                } else if isCancellation(error), cancellationRetries == 0 {
-                    cancellationRetries += 1
-                    reloadRequested = true
                 } else {
                     errorMessage = error.localizedDescription
                 }

@@ -159,17 +159,6 @@ struct PricesView: View {
                     .padding(.bottom, 12)
                     .background(.background)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 24)
-                            .onEnded { value in
-                                let verticalDistance = value.translation.height
-                                guard verticalDistance > 60,
-                                      verticalDistance > abs(value.translation.width) else {
-                                    return
-                                }
-                                Task { await viewModel.load() }
-                            }
-                    )
                 }
             }
         }

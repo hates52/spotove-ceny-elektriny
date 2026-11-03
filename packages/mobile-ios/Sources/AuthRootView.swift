@@ -31,6 +31,12 @@ struct AuthRootView: View {
 
     private var signInView: some View {
         VStack(spacing: 20) {
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .accessibilityLabel("Logo spotových cen elektřiny")
+
             Text("Spotové ceny")
                 .font(.largeTitle.bold())
 
@@ -55,7 +61,7 @@ struct AuthRootView: View {
                     } else {
                         Image(systemName: "person.crop.circle")
                     }
-                    Text(authManager.isAuthenticating ? "Přihlašuji…" : "Přihlásit přes Microsoft")
+                    Text(authManager.isAuthenticating ? "Přihlašuji…" : "Přihlásit")
                 }
                 .frame(maxWidth: .infinity)
             }
