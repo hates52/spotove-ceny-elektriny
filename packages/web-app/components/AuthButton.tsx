@@ -1,11 +1,13 @@
 'use client';
 
 import { useAuth } from 'react-oidc-context';
+import { useAuthConfiguration } from './AuthProvider';
 
 export default function AuthButton() {
   const auth = useAuth();
+  const configuration = useAuthConfiguration();
 
-  if (!process.env.NEXT_PUBLIC_OIDC_AUTHORITY || !process.env.NEXT_PUBLIC_OIDC_CLIENT_ID) {
+  if (!configuration.authority || !configuration.clientId) {
     return null;
   }
 

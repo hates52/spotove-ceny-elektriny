@@ -14,12 +14,12 @@ Endpoint: `GET /api/auth/me` (vyžaduje Bearer token + příslušnou skupinu)
 
 ## Web app (.env.local)
 ```
-NEXT_PUBLIC_OIDC_AUTHORITY=https://your-issuer
-NEXT_PUBLIC_OIDC_CLIENT_ID=your-client-id
-NEXT_PUBLIC_OIDC_SCOPE=openid profile email
+OIDC_AUTHORITY=https://your-issuer
+OIDC_CLIENT_ID=your-client-id
+OIDC_SCOPE=openid profile email
 ```
 
-SPA používá `react-oidc-context` s PKCE flow. Callback: `/auth/callback`, logout: `/auth/logout`.
+Web app čte konfiguraci na serveru a předává ji OIDC klientovi v prohlížeči. Hodnoty authority, client ID a scope jsou klientské údaje, nikoli tajemství. SPA používá `react-oidc-context` s PKCE flow. Callback: `/auth/callback`, logout: `/auth/logout`.
 
 ## Azure Entra ID nastavení
 
@@ -35,9 +35,9 @@ Poznámka: Pro získání group claims v tokenu je třeba nastavit "groupMembers
 
 ### Web app (SPA)
 ```
-NEXT_PUBLIC_OIDC_AUTHORITY=https://login.microsoftonline.com/your-tenant-id/v2.0
-NEXT_PUBLIC_OIDC_CLIENT_ID=your-spa-client-id
-NEXT_PUBLIC_AZURE_API_SCOPE=api://your-api-client-id/.default  # nebo custom scope
-NEXT_PUBLIC_OIDC_SCOPE=openid profile email api://your-api-client-id/.default
+OIDC_AUTHORITY=https://login.microsoftonline.com/your-tenant-id/v2.0
+OIDC_CLIENT_ID=your-spa-client-id
+AZURE_API_SCOPE=api://your-api-client-id/.default  # nebo custom scope
+OIDC_SCOPE=openid profile email api://your-api-client-id/.default
 ```
 V Azure AD nastav redirect URI na `http://localhost:3000/auth/callback` a povol implicit flow/PKCE (SPA). Pro volání backendu použij access token z `auth.user?.access_token`.

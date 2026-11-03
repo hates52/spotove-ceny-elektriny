@@ -4,12 +4,14 @@ import { useAuth } from 'react-oidc-context';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useAuthConfiguration } from '@/components/AuthProvider';
 
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
+  const configuration = useAuthConfiguration();
 
-  const authEnabled = !!(process.env.NEXT_PUBLIC_OIDC_AUTHORITY && process.env.NEXT_PUBLIC_OIDC_CLIENT_ID);
+  const authEnabled = !!(configuration.authority && configuration.clientId);
 
   useEffect(() => {
     if (!authEnabled) return;
