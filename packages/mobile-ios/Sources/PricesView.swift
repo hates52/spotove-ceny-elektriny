@@ -48,11 +48,6 @@ struct PricesView: View {
             .task {
                 await viewModel.load()
             }
-            .sheet(isPresented: $isDatePickerPresented) {
-                datePickerSheet
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-            }
         }
     }
 
@@ -114,7 +109,16 @@ struct PricesView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         if let day = viewModel.selectedDay {
                             priceChart(for: day)
-                            priceList(for: day)
+                            ZStack(alignment: .top) {
+                                priceList(for: day)
+                                    .opacity(isDatePickerPresented ? 0 : 1)
+                                    .allowsHitTesting(!isDatePickerPresented)
+
+                                if isDatePickerPresented {
+                                    datePickerPanel
+                                        .zIndex(1)
+                                }
+                            }
                         } else {
                             ContentUnavailableView(
                                 "Pro tento den nejsou ceny",
@@ -201,63 +205,62 @@ struct PricesView: View {
         }
     }
 
-    private var datePickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                HStack {
-                    Button {
-                        moveDisplayedMonth(by: -1)
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .frame(width: 44, height: 44)
-                    }
-                    .disabled(!canMoveDisplayedMonth(by: -1))
-                    .accessibilityLabel("Předchozí měsíc")
-
-                    Spacer()
-
-                    Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
-                        .font(.headline)
-                        .accessibilityAddTraits(.isHeader)
-
-                    Spacer()
-
-                    Button {
-                        moveDisplayedMonth(by: 1)
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .frame(width: 44, height: 44)
-                    }
-                    .disabled(!canMoveDisplayedMonth(by: 1))
-                    .accessibilityLabel("Další měsíc")
+    private var datePickerPanel: some View {
+        VStack(spacing: 20) {
+            HStack(spacing: 12) {
+                Button {
+                    moveDisplayedMonth(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .frame(width: 44, height: 44)
                 }
+                .disabled(!canMoveDisplayedMonth(by: -1))
+                .accessibilityLabel("Předchozí měsíc")
 
-                calendarGrid
+                Spacer()
 
-                Label("Dny bez datových souborů nelze vybrat.", systemImage: "info.circle")
-                    .font(.footnote)
+                Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+
+                Spacer()
+
+                Button {
+                    moveDisplayedMonth(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .frame(width: 44, height: 44)
+                }
+                .disabled(!canMoveDisplayedMonth(by: 1))
+                .accessibilityLabel("Další měsíc")
+
+                Button("Zrušit") {
+                    isDatePickerPresented = false
+                }
+                .font(.subheadline)
+            }
+
+            calendarGrid
+
+            HStack(spacing: 12) {
+                Label("Dny bez dat nelze vybrat.", systemImage: "info.circle")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: 0)
-            }
-            .padding()
-            .navigationTitle("Vybrat den")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Zrušit") {
-                        isDatePickerPresented = false
-                    }
+                Button("Zobrazit") {
+                    isDatePickerPresented = false
+                    Task { await viewModel.selectDate(datePickerSelection) }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Zobrazit") {
-                        isDatePickerPresented = false
-                        Task { await viewModel.selectDate(datePickerSelection) }
-                    }
-                    .disabled(!isDateAvailable(datePickerSelection))
-                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!isDateAvailable(datePickerSelection))
             }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.quaternary, lineWidth: 1)
         }
     }
 
@@ -265,7 +268,6 @@ struct PricesView: View {
         let calendar = Calendar.current
         let weekdaySymbols = calendar.veryShortStandaloneWeekdaySymbols
         let cells = calendarMonthCells
-
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
             ForEach(0..<7, id: \.self) { index in
                 Text(weekdaySymbols[(calendar.firstWeekday - 1 + index) % 7])
