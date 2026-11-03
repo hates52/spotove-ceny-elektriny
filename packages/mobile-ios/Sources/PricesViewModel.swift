@@ -26,6 +26,12 @@ final class PricesViewModel: ObservableObject {
         historicalDay ?? days.first { $0.date == selectedDate }
     }
 
+    var latestAvailableDays: [HourlyPriceDay] {
+        availableDates.suffix(2).compactMap { date in
+            days.first { $0.date == date }
+        }
+    }
+
     var availableDateRange: ClosedRange<Date>? {
         guard let first = availableDates.first.flatMap({ HourlyPriceDay.date(from: $0) }),
               let last = availableDates.last.flatMap({ HourlyPriceDay.date(from: $0) }) else {
@@ -87,26 +93,32 @@ final class PricesViewModel: ObservableObject {
             errorMessage = nil
 
             do {
-                let refreshedDays = try await apiClient.fetchStoredDays()
+                var refreshedDays = try await apiClient.fetchStoredDays()
                     .filter { !$0.data.isEmpty }
                     .sorted { $0.date < $1.date }
                 let refreshedAt = Date()
-                days = refreshedDays
                 currentPriceSnapshot = Self.currentPriceSnapshot(in: refreshedDays, at: refreshedAt)
-                if selectedDate == nil {
-                    selectedDate = days.first?.date
-                }
                 availableDates = try await apiClient.fetchAvailableDates().sorted()
                 let datesWithData = Set(availableDates)
 
+                for date in availableDates.suffix(2) where !refreshedDays.contains(where: { $0.date == date }) {
+                    if let day = try await apiClient.fetchHistoricalDay(date: date) {
+                        refreshedDays.append(day)
+                    }
+                }
+                days = refreshedDays.sorted { $0.date < $1.date }
+
+                if selectedDate == nil {
+                    selectedDate = HourlyPriceDay.dateString(from: refreshedAt)
+                }
+
                 if let selectedDate, datesWithData.contains(selectedDate) {
-                    if days.contains(where: { $0.date == selectedDate }) {
-                        historicalDay = nil
-                    } else {
+                    if !days.contains(where: { $0.date == selectedDate }) {
                         historicalDay = try await apiClient.fetchHistoricalDay(date: selectedDate)
+                    } else {
+                        historicalDay = nil
                     }
                 } else {
-                    selectedDate = days.first?.date
                     historicalDay = nil
                 }
                 cancellationRetries = 0

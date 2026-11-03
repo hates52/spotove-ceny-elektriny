@@ -173,7 +173,7 @@ struct PricesView: View {
 
     private var daySelector: some View {
         HStack(spacing: 8) {
-            ForEach(viewModel.days) { day in
+            ForEach(viewModel.latestAvailableDays) { day in
                 Button {
                     viewModel.selectDay(day)
                 } label: {
@@ -192,7 +192,7 @@ struct PricesView: View {
                 isDatePickerPresented = true
             } label: {
                 Label {
-                    Text(viewModel.selectedDay?.parsedDate?.formatted(.dateTime.day().month(.abbreviated)) ?? "Datum")
+                    Text(viewModel.selectedDateValue.formatted(.dateTime.day().month(.abbreviated)))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 } icon: {
