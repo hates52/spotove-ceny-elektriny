@@ -22,7 +22,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded shadow max-w-md w-full">
         <div className="flex flex-col items-center mb-6">
-          <Image src="/logo.svg" alt="Spotové ceny elektřiny logo" width={80} height={80} className="mb-4" />
+          <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny logo" width={80} height={80} className="mb-4" />
           <h1 className="text-xl font-semibold">Spotové ceny elektřiny</h1>
         </div>
         {!authEnabled && <p className="text-sm text-gray-600">OIDC není nakonfigurován</p>}

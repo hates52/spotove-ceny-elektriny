@@ -20,7 +20,7 @@ export default function Home() {
         <div className="px-4">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
+              <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
               <h1 className="text-2xl font-bold text-gray-800">Spotové ceny elektřiny</h1>
             </div>
             <AuthButton />

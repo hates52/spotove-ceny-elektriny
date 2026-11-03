@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="96" fill="#4F46E5"/>
+  <g stroke="#ffffff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 96 L256 176"/>
+    <path d="M256 336 L256 416"/>
+    <path d="M96 256 L176 256"/>
+    <path d="M336 256 L416 256"/>
+    <path d="M146 146 L203 203"/>
+    <path d="M309 309 L366 366"/>
+    <path d="M146 366 L203 309"/>
+    <path d="M309 203 L366 146"/>
+  </g>
+  <circle cx="256" cy="256" r="48" fill="#ffffff"/>
+  <text x="256" y="470" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="700" fill="#4F46E5" text-anchor="middle">SPOT</text>
+</svg>
