@@ -1,4 +1,30 @@
 import Foundation
+import Security
+
+private final class BackendTLSDelegate: NSObject, URLSessionDelegate {
+    private let backendHost: String
+
+    init(backendHost: String) {
+        self.backendHost = backendHost
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard
+            challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+            challenge.protectionSpace.host.caseInsensitiveCompare(backendHost) == .orderedSame,
+            let trust = challenge.protectionSpace.serverTrust
+        else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        completionHandler(.useCredential, URLCredential(trust: trust))
+    }
+}
 
 enum PriceAPIError: LocalizedError {
     case invalidBaseURL
@@ -9,7 +35,7 @@ enum PriceAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidBaseURL:
-            return "Adresa backendu není platná. Zkontrolujte API_BASE_URL v Config/Info.plist."
+            return "Adresa backendu není platná. Zkontrolujte BACKEND_URL v Config/Info.plist."
         case .invalidResponse:
             return "Server vrátil neplatnou odpověď."
         case .unauthorized:
@@ -28,14 +54,24 @@ struct PriceAPIClient {
     private let accessTokenProvider: AccessTokenProvider?
 
     init(
-        baseURL: URL? = (Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String)
+        baseURL: URL? = (Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String)
             .flatMap(URL.init(string:)),
-        session: URLSession = .shared,
+        session: URLSession? = nil,
         accessTokenProvider: AccessTokenProvider? = nil
     ) {
         self.baseURL = baseURL
-        self.session = session
+        self.session = session ?? Self.makeSession(baseURL: baseURL)
         self.accessTokenProvider = accessTokenProvider
+    }
+
+    private static func makeSession(baseURL: URL?) -> URLSession {
+        let allowsInsecureTLS = Bundle.main.object(forInfoDictionaryKey: "INSECURE_TLS") as? Bool == true
+        guard allowsInsecureTLS, let host = baseURL?.host else {
+            return .shared
+        }
+
+        let delegate = BackendTLSDelegate(backendHost: host)
+        return URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
     }
 
     func fetchStoredDays() async throws -> [HourlyPriceDay] {

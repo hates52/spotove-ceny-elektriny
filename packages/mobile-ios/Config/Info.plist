@@ -2,16 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>API_BASE_URL</key>
+	<key>BACKEND_URL</key>
 	<string>https://localhost:4000</string>
-	<key>ENTRA_CLIENT_ID</key>
+	<key>INSECURE_TLS</key>
+	<true/>
+	<key>OIDC_CLIENT_ID</key>
 	<string>e65de300-3a2d-4404-8a7c-d893d755aa8f</string>
-	<key>ENTRA_AUTHORITY</key>
-	<string>https://login.microsoftonline.com/e0690ba2-036d-442a-84ee-e87b1e442964</string>
-	<key>ENTRA_REDIRECT_URI</key>
+	<key>OIDC_AUTHORITY</key>
+	<string>https://login.microsoftonline.com/e0690ba2-036d-442a-84ee-e87b1e442964/v2.0</string>
+	<key>OIDC_REDIRECT_URI</key>
 	<string>msauth.cz.spotove.ceny://auth</string>
-	<key>ENTRA_API_SCOPE</key>
-	<string>api://27a8c0db-80aa-48e3-a777-9ccd30f23a7b/access_as_user</string>
+	<key>OIDC_SCOPE</key>
+	<string>openid profile email api://27a8c0db-80aa-48e3-a777-9ccd30f23a7b/.default</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID chrání přístup k přihlášené relaci v této aplikaci.</string>
 	<key>CFBundleDevelopmentRegion</key>

@@ -14,19 +14,20 @@ Základ nativní aplikace ve SwiftUI pro iOS 17 a novější. Projekt otevřete 
 
 ## Backend
 
-Výchozí adresa je `https://localhost:4000` a je nastavena v `Config/Info.plist`. Pro fyzické zařízení změňte `API_BASE_URL` na HTTPS adresu backendu dostupnou z telefonu. iOS standardně nedůvěřuje self-signed certifikátu vytvořenému backendem; pro zařízení proto nastavte backendový certifikát podepsaný důvěryhodnou autoritou. `INSECURE_TLS` ve webapp platí pouze pro serverovou proxy a nemění ověřování TLS v iOS aplikaci. Aplikace načítá uložené JSON soubory přes backendové endpointy, nevyvolává `/api/price/hourly` (který stahuje nová data podle `DATA_SOURCE`) a název zdroje zobrazuje podle pole `data_source` v konkrétním načteném souboru.
+Výchozí adresa je `https://localhost:4000` a je nastavena jako `BACKEND_URL` v `Config/Info.plist`. `INSECURE_TLS=true` povolí použití self-signed TLS certifikátu pouze při komunikaci s hostitelem uvedeným v `BACKEND_URL`; tuto možnost používejte jen pro vývoj. V produkci nastavte `INSECURE_TLS=false` a použijte certifikát podepsaný důvěryhodnou autoritou. Pro fyzické zařízení změňte `BACKEND_URL` na HTTPS adresu backendu dostupnou z telefonu. Aplikace načítá uložené JSON soubory přes backendové endpointy, nevyvolává `/api/price/hourly` (který stahuje nová data podle `DATA_SOURCE`) a název zdroje zobrazuje podle pole `data_source` v konkrétním načteném souboru.
 
 ## Entra ID konfigurace
 
 V `Config/Info.plist` nastavte:
 
-- `ENTRA_CLIENT_ID`: Application (client) ID registrace mobilní aplikace.
-- `ENTRA_AUTHORITY`: `https://login.microsoftonline.com/<TENANT_ID>` pro váš tenant.
-- `ENTRA_REDIRECT_URI`: `msauth.cz.spotove.ceny://auth`.
-- `ENTRA_API_SCOPE`: delegovaný scope chráněného backend API, například `api://<API_CLIENT_ID>/access_as_user`.
-- `API_BASE_URL`: HTTPS adresa backendu dostupná ze zařízení.
+- `OIDC_CLIENT_ID`: Application (client) ID registrace mobilní aplikace.
+- `OIDC_AUTHORITY`: `https://login.microsoftonline.com/<TENANT_ID>/v2.0` pro váš tenant.
+- `OIDC_SCOPE`: OIDC/API scopes; MSAL pro získání access tokenu použije API scope a standardní OIDC scopes ignoruje.
+- `OIDC_REDIRECT_URI`: `msauth.cz.spotove.ceny://auth`.
+- `BACKEND_URL`: HTTPS adresa backendu dostupná ze zařízení.
+- `INSECURE_TLS`: pro lokální vývoj povolí neověřený certifikát backendu; vždy jej vypněte v produkci.
 
-V Entra ID zaregistrujte aplikaci jako iOS/macOS mobilní klient s bundle ID `cz.spotove.ceny` a redirect URI `msauth.cz.spotove.ceny://auth`. Na registraci backend API vystavte delegované oprávnění odpovídající `ENTRA_API_SCOPE` a povolte jeho použití mobilní aplikaci. `OIDC_AUDIENCE` na backendu musí odpovídat audience access tokenu pro toto API; současně nastavte tenant, issuer/JWKS a případnou skupinu dle `README_OIDC.md`. Mobilní aplikace je veřejný klient a nesmí obsahovat client secret.
+V Entra ID zaregistrujte aplikaci jako iOS/macOS mobilní klient s bundle ID `cz.spotove.ceny` a redirect URI `msauth.cz.spotove.ceny://auth`. Na registraci backend API vystavte delegované oprávnění odpovídající API scope v `OIDC_SCOPE` a povolte jeho použití mobilní aplikaci. `OIDC_AUDIENCE` na backendu musí odpovídat audience access tokenu pro toto API; současně nastavte tenant, issuer/JWKS a případnou skupinu dle `README_OIDC.md`. Mobilní aplikace je veřejný klient a nesmí obsahovat client secret.
 
 MSAL spravuje Entra tokeny ve své systémové cache. Aplikace je neukládá do vlastního Keychainu ani `UserDefaults`; před každým voláním cen se token získá z MSAL potichu. Face ID chrání pouze místní přístup k přihlášené aplikaci. Jeho Keychain položka obsahuje jen značku zapnutí, je vázaná na aktuální sadu biometrie a zařízení a při změně biometrie přestane fungovat. Face ID nenahrazuje Entra přihlášení ani kontrolu backendu.
 

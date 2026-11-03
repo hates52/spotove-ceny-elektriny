@@ -23,19 +23,23 @@ final class AuthManager: ObservableObject {
     init(apiClient: PriceAPIClient = PriceAPIClient()) {
         self.apiClient = apiClient
         self.biometricEnabled = UserDefaults.standard.bool(forKey: Self.biometricPreferenceKey)
-        self.scopes = (Bundle.main.object(forInfoDictionaryKey: "ENTRA_API_SCOPE") as? String)?
+        let configuredScopes = (Bundle.main.object(forInfoDictionaryKey: "OIDC_SCOPE") as? String)?
             .split(whereSeparator: \.isWhitespace)
             .map(String.init) ?? []
+        let apiScopes = configuredScopes.filter {
+            !["openid", "profile", "email", "offline_access"].contains($0.lowercased())
+        }
+        self.scopes = apiScopes
 
         do {
-            let clientID = try Self.requiredConfigurationValue("ENTRA_CLIENT_ID")
-            let authorityValue = try Self.requiredConfigurationValue("ENTRA_AUTHORITY")
-            let redirectURI = try Self.requiredConfigurationValue("ENTRA_REDIRECT_URI")
-            guard !scopes.isEmpty else {
-                throw AuthError.missingConfiguration("ENTRA_API_SCOPE")
+            let clientID = try Self.requiredConfigurationValue("OIDC_CLIENT_ID")
+            let authorityValue = try Self.requiredConfigurationValue("OIDC_AUTHORITY")
+            let redirectURI = try Self.requiredConfigurationValue("OIDC_REDIRECT_URI")
+            guard !apiScopes.isEmpty else {
+                throw AuthError.missingConfiguration("OIDC_SCOPE")
             }
             guard let authorityURL = URL(string: authorityValue) else {
-                throw AuthError.invalidConfiguration("ENTRA_AUTHORITY")
+                throw AuthError.invalidConfiguration("OIDC_AUTHORITY")
             }
 
             let authority = try MSALAADAuthority(url: authorityURL)
