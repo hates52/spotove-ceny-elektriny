@@ -45,13 +45,41 @@ app.use('/api', (req, res, next) => {
   if (req.path === '/instance') return next();
   return requireAuth(req as any, res, next);
 });
+function getClientIdentifier(req: express.Request): string {
+  const ua = (req.headers['user-agent'] || '').toLowerCase();
+  if (ua.includes('edg')) return 'edge';
+  if (ua.includes('chrome')) return 'chrome';
+  if (ua.includes('firefox')) return 'firefox';
+  if (ua.includes('safari')) return 'safari';
+  if (ua.includes('mozilla')) return 'mozilla';
+  if (ua.includes('okhttp')) return 'okhttp';
+  if (ua.includes('axios')) return 'axios';
+  if (ua.includes('node-fetch') || ua.includes('nodejs')) return 'nodejs';
+  if (ua.includes('python') || ua.includes('requests') || ua.includes('urllib')) return 'python';
+  if (ua.includes('curl')) return 'curl';
+  if (ua.includes('wget')) return 'wget';
+  if (ua.length > 0) return ua.slice(0, 30).replace(/\s+/g, '-');
+  return 'unknown';
+}
+
+function accessLog(req: express.Request, res: express.Response, start: number): void {
+  const u = (req as any).user || {};
+  const user = u.preferred_username || u.email || u.unique_name || u.name || u.sub || '-';
+  const client = getClientIdentifier(req);
+  const ip = req.ip || req.socket.remoteAddress || '-';
+  const referer = req.headers.referer || '-';
+  const ua = req.headers['user-agent'] || '-';
+  console.log(
+    `${ip} - ${user} [${new Date().toISOString()}] ` +
+    `"${req.method} ${req.originalUrl} HTTP/${req.httpVersion}" ${res.statusCode} ` +
+    `duration=${Date.now() - start}ms client=${client} ` +
+    `referer="${referer}" ua="${ua}"`
+  );
+}
+
 app.use('/api', (req, res, next) => {
   const start = Date.now();
-  res.on('finish', () => {
-    const u = (req as any).user || {};
-    const user = u.preferred_username || u.email || u.unique_name || u.name || u.sub || 'anonymous';
-    console.log(`[audit] ${new Date().toISOString()} user=${user} ${req.method} ${req.originalUrl} status=${res.statusCode} duration=${Date.now()-start}ms`);
-  });
+  res.on('finish', () => accessLog(req, res, start));
   next();
 });
 
