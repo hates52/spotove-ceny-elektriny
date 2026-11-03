@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>API_BASE_URL</key>
-	<string>http://localhost:4000</string>
+	<string>https://localhost:4000</string>
 	<key>ENTRA_CLIENT_ID</key>
 	<string>e65de300-3a2d-4404-8a7c-d893d755aa8f</string>
 	<key>ENTRA_AUTHORITY</key>

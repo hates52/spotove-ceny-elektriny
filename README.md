@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-Backend běží na http://localhost:4000
+Backend API běží přes HTTPS na https://localhost:4000. Bez `TLS_CERT_PATH` a `TLS_KEY_PATH` vytvoří při startu self-signed certifikát pouze v paměti; nastavte obě proměnné na cesty k certifikátu a privátnímu klíči pro trvalý certifikát.
 
 ### Frontend
 
@@ -31,4 +31,4 @@ npm run dev
 
 Frontend běží na http://localhost:3000
 
-Frontend potřebuje proměnnou prostředí `NEXT_PUBLIC_API_URL` (viz `.env.local.example`).
+Frontend proxyuje API serverově přes HTTPS. Pro lokální self-signed certifikát nastavte v prostředí webapp `INSECURE_TLS=true`; pro certifikát důvěryhodný klientským systémem ponechte `false`. Backendový origin lze nastavit přes `BACKEND_URL`.

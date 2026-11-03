@@ -18,8 +18,7 @@ export default function EnergyFlow() {
   useEffect(() => {
     const fetchCurrent = async () => {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-        const res = await fetch(`${API_BASE_URL}/api/current-price`, { cache: 'no-store' });
+        const res = await fetch('/api/backend/current-price', { cache: 'no-store' });
         if (!res.ok) return;
         const price: CurrentPrice = await res.json();
 

@@ -4,8 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from 'react-oidc-context';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
 export default function CallbackPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -21,7 +19,7 @@ export default function CallbackPage() {
     const token = auth.user.access_token;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const res = await fetch('/api/backend/auth/me', {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!res.ok) {

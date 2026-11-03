@@ -14,7 +14,7 @@ Základ nativní aplikace ve SwiftUI pro iOS 17 a novější. Projekt otevřete 
 
 ## Backend
 
-Výchozí adresa je `http://localhost:4000` a je nastavena v `Config/Info.plist`. Pro fyzické zařízení změňte `API_BASE_URL` na HTTPS adresu backendu dostupnou z telefonu. Lokální HTTP výjimka je povolená pouze pro lokální vývoj. Aplikace načítá uložené JSON soubory přes backendové endpointy, nevyvolává `/api/price/hourly` (který stahuje nová data podle `DATA_SOURCE`) a název zdroje zobrazuje podle pole `data_source` v konkrétním načteném souboru.
+Výchozí adresa je `https://localhost:4000` a je nastavena v `Config/Info.plist`. Pro fyzické zařízení změňte `API_BASE_URL` na HTTPS adresu backendu dostupnou z telefonu. iOS standardně nedůvěřuje self-signed certifikátu vytvořenému backendem; pro zařízení proto nastavte backendový certifikát podepsaný důvěryhodnou autoritou. `INSECURE_TLS` ve webapp platí pouze pro serverovou proxy a nemění ověřování TLS v iOS aplikaci. Aplikace načítá uložené JSON soubory přes backendové endpointy, nevyvolává `/api/price/hourly` (který stahuje nová data podle `DATA_SOURCE`) a název zdroje zobrazuje podle pole `data_source` v konkrétním načteném souboru.
 
 ## Entra ID konfigurace
 

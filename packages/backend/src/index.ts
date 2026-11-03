@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import https from 'https';
+import fs from 'fs';
 import priceRoutes from './routes/price';
 import instanceRoutes from './routes/instance';
 import authRoutes from './routes/auth';
@@ -8,6 +10,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
 import { fetchAndStoreHourlyPrices } from './services/priceService';
+import { generate } from 'selfsigned';
 
 const rootDir = path.resolve(__dirname, '..', '..', '..');
 console.log('rootDir', rootDir, 'exists', require('fs').existsSync(path.join(rootDir,'.env')));
@@ -38,6 +41,41 @@ async function ensureTodaysData(): Promise<void> {
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+function getTlsCredentials(): { key: string; cert: string } {
+  const certPath = process.env.TLS_CERT_PATH;
+  const keyPath = process.env.TLS_KEY_PATH;
+
+  if (Boolean(certPath) !== Boolean(keyPath)) {
+    throw new Error('TLS_CERT_PATH and TLS_KEY_PATH must either both be set or both be empty');
+  }
+
+  if (certPath && keyPath) {
+    return {
+      cert: fs.readFileSync(certPath, 'utf8'),
+      key: fs.readFileSync(keyPath, 'utf8'),
+    };
+  }
+
+  console.warn('[startup] TLS_CERT_PATH/TLS_KEY_PATH not set; generating an in-memory self-signed certificate');
+  const certificate = generate(
+    [{ name: 'commonName', value: 'localhost' }],
+    {
+      algorithm: 'sha256',
+      days: 365,
+      keySize: 2048,
+      extensions: [{
+        name: 'subjectAltName',
+        altNames: [
+          { type: 2, value: 'localhost' },
+          { type: 7, ip: '127.0.0.1' },
+          { type: 7, ip: '::1' },
+        ],
+      }],
+    },
+  );
+  return { key: certificate.private, cert: certificate.cert };
+}
 
 app.use(cors());
 app.use(express.json());
@@ -109,8 +147,9 @@ app.get('/api/me', async (req, res) => {
 });
 
 ensureTodaysData().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Backend server running on port ${PORT}`);
+  const credentials = getTlsCredentials();
+  https.createServer(credentials, app).listen(PORT, () => {
+    console.log(`Backend HTTPS server running on port ${PORT}`);
   });
 }).catch((err) => {
   console.error('[startup] Failed to ensure today\'s data:', err);

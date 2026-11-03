@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = '/api/backend';
 
 function authHeaders(token?: string | null): HeadersInit | undefined {
   return token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -22,7 +22,7 @@ export interface TodayTomorrowData {
 }
 
 export async function fetchCurrentPrice(token?: string | null): Promise<{ priceCZK: number; priceEUR: number; level: string; levelNum: number; dataSource?: DataSourceInfo }> {
-  const response = await fetch(`${API_BASE_URL}/api/current-price`, {
+  const response = await fetch(`${API_BASE_URL}/current-price`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
@@ -33,7 +33,7 @@ export async function fetchCurrentPrice(token?: string | null): Promise<{ priceC
 }
 
 export async function fetchTodayAndTomorrowData(token?: string | null): Promise<TodayTomorrowData> {
-  const response = await fetch(`${API_BASE_URL}/api/price/today-tomorrow`, {
+  const response = await fetch(`${API_BASE_URL}/price/today-tomorrow`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
@@ -44,7 +44,7 @@ export async function fetchTodayAndTomorrowData(token?: string | null): Promise<
 }
 
 export async function fetchDataSourceInfo(token?: string | null): Promise<DataSourceInfo> {
-  const response = await fetch(`${API_BASE_URL}/api/price/data-source`, {
+  const response = await fetch(`${API_BASE_URL}/price/data-source`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
@@ -55,7 +55,7 @@ export async function fetchDataSourceInfo(token?: string | null): Promise<DataSo
 }
 
 export async function fetchAvailableDates(token?: string | null): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/api/price/dates`, {
+  const response = await fetch(`${API_BASE_URL}/price/dates`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
@@ -76,7 +76,8 @@ export interface HistoricalDataResponse {
 }
 
 export async function fetchHistoricalData(startDate: string, endDate: string, token?: string | null): Promise<HistoricalDataResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/price/historical?startDate=${startDate}&endDate=${endDate}`, {
+  const query = new URLSearchParams({ startDate, endDate });
+  const response = await fetch(`${API_BASE_URL}/price/historical?${query}`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
@@ -87,7 +88,7 @@ export async function fetchHistoricalData(startDate: string, endDate: string, to
 }
 
 export async function fetchAndStoreHourlyPrices(token?: string | null) {
-  const response = await fetch(`${API_BASE_URL}/api/price/hourly`, {
+  const response = await fetch(`${API_BASE_URL}/price/hourly`, {
     cache: 'no-store',
     headers: authHeaders(token),
   });
