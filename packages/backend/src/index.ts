@@ -11,9 +11,11 @@ import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
 import { fetchAndStoreHourlyPrices } from './services/priceService';
 import { generate } from 'selfsigned';
+import cron from 'node-cron';
+import { startupLogger, cronLogger, apiLogger } from './lib/logger';
 
 const rootDir = path.resolve(__dirname, '..', '..', '..');
-console.log('rootDir', rootDir, 'exists', require('fs').existsSync(path.join(rootDir,'.env')));
+startupLogger.info('startup', `rootDir=${rootDir} envExists=${require('fs').existsSync(path.join(rootDir, '.env'))}`);
 dotenv.config();
 dotenv.config({ path: path.join(rootDir, '.env') });
 dotenv.config({ path: path.join(process.cwd(), '..', '..', '.env') });
@@ -31,16 +33,30 @@ async function ensureTodaysData(): Promise<void> {
   const today = getTodayDateString();
   const existing = await getFreezePriceData(today);
   if (!existing) {
-    console.log(`[startup] No data for ${today}, fetching...`);
+    startupLogger.info('startup', `No data for ${today}, fetching...`);
     await fetchAndStoreHourlyPrices();
-    console.log(`[startup] Data for ${today} fetched and stored`);
+    startupLogger.info('startup', `Data for ${today} fetched and stored`);
   } else {
-    console.log(`[startup] Data for ${today} already exists`);
+    startupLogger.info('startup', `Data for ${today} already exists`);
   }
+}
+
+function setupCronJob(): void {
+  cron.schedule(CRON_SCHEDULE, async () => {
+    cronLogger.info('cron', `Running scheduled fetchAndStoreHourlyPrices... schedule=${CRON_SCHEDULE}`);
+    try {
+      await fetchAndStoreHourlyPrices();
+      cronLogger.info('cron', 'Scheduled fetch completed successfully');
+    } catch (error) {
+      cronLogger.error('cron', `Scheduled fetch failed: ${String(error)}`);
+    }
+  });
+  cronLogger.info('cron', `Scheduled job started schedule=${CRON_SCHEDULE}`);
 }
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '*/15 * * * *';
 
 function getTlsCredentials(): { key: string; cert: string } {
   const certPath = process.env.TLS_CERT_PATH;
@@ -57,7 +73,7 @@ function getTlsCredentials(): { key: string; cert: string } {
     };
   }
 
-  console.warn('[startup] TLS_CERT_PATH/TLS_KEY_PATH not set; generating an in-memory self-signed certificate');
+  startupLogger.warn('startup', 'TLS_CERT_PATH/TLS_KEY_PATH not set; generating an in-memory self-signed certificate');
   const certificate = generate(
     [{ name: 'commonName', value: 'localhost' }],
     {
@@ -89,12 +105,9 @@ function accessLog(req: express.Request, res: express.Response, start: number): 
   const ip = req.ip || req.socket.remoteAddress || '-';
   const referer = req.headers.referer || '-';
   const ua = req.headers['user-agent'] || '-';
-  console.log(
-    `${ip} - ${user} [${new Date().toISOString()}] ` +
-    `"${req.method} ${req.originalUrl} HTTP/${req.httpVersion}" ${res.statusCode} ` +
-    `duration=${Date.now() - start}ms ` +
-    `referer="${referer}" ua="${ua}"`
-  );
+  const durationMs = Date.now() - start;
+  const message = `${ip} - ${user} [${new Date().toISOString()}] "${req.method} ${req.originalUrl} HTTP/${req.httpVersion}" ${res.statusCode} duration=${durationMs}ms referer="${referer}" ua="${ua}"`;
+  apiLogger.info('api', message);
 }
 
 app.use('/api', (req, res, next) => {
@@ -129,11 +142,12 @@ app.get('/api/me', async (req, res) => {
 });
 
 ensureTodaysData().then(() => {
+  setupCronJob();
   const credentials = getTlsCredentials();
   https.createServer(credentials, app).listen(PORT, () => {
-    console.log(`Backend HTTPS server running on port ${PORT}`);
+    startupLogger.info('startup', `Backend HTTPS server running on port ${PORT}`);
   });
 }).catch((err) => {
-  console.error('[startup] Failed to ensure today\'s data:', err);
+  startupLogger.error('startup', `Failed to ensure today's data: ${String(err)}`);
   process.exit(1);
 });
