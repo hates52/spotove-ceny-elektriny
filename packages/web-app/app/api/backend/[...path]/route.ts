@@ -3,10 +3,9 @@ import { proxyBackendRequest } from '@/app/lib/backend-proxy';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-type RouteContext = { params: { path: string[] } };
-
-function handle(request: Request, { params }: RouteContext): Promise<Response> {
-  const path = params.path.map(encodeURIComponent).join('/');
+async function handle(request: Request, { params }: { params: Promise<{ path: string[] }> }): Promise<Response> {
+  const resolvedParams = await params;
+  const path = resolvedParams.path.map(encodeURIComponent).join('/');
   return proxyBackendRequest(request, `/api/${path}`);
 }
 
