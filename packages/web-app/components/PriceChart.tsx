@@ -24,7 +24,7 @@ const formatDateRange = (start: string, end: string) => {
   const endDate = new Date(end);
   const startStr = `${startDate.getDate()}.${startDate.getMonth() + 1}.${startDate.getFullYear()}`;
   const endStr = `${endDate.getDate()}.${endDate.getMonth() + 1}.${endDate.getFullYear()}`;
-  return startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+  return `${startStr} – ${endStr}`;
 };
 
 import { fetchCurrentPrice } from '@/app/lib/api';
@@ -423,7 +423,14 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
             if (dataIndex !== undefined && chartPoints[dataIndex]) {
               const timestamp = chartPoints[dataIndex].timestamp;
               const date = new Date(timestamp);
-              return date.toLocaleString('cs-CZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+              const hour = date.getHours().toString().padStart(2, '0');
+              const minute = date.getMinutes().toString().padStart(2, '0');
+              const endDate = new Date(timestamp + 15 * 60 * 1000);
+              const endHour = endDate.getHours().toString().padStart(2, '0');
+              const endMinute = endDate.getMinutes().toString().padStart(2, '0');
+              const day = date.getDate().toString().padStart(2, '0');
+              const month = (date.getMonth() + 1).toString().padStart(2, '0');
+              return `${day}.${month}. ${hour}:${minute}–${endHour}:${endMinute}`;
             }
             return '';
           },

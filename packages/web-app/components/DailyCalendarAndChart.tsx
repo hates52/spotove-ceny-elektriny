@@ -261,7 +261,12 @@ export default function DailyCalendarAndChart() {
             if (dataIndex !== undefined && chartPoints[dataIndex]) {
               const timestamp = chartPoints[dataIndex].timestamp;
               const date = new Date(timestamp);
-              return date.toLocaleString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+              const hour = date.getHours().toString().padStart(2, '0');
+              const minute = date.getMinutes().toString().padStart(2, '0');
+              const endDate = new Date(timestamp + 15 * 60 * 1000);
+              const endHour = endDate.getHours().toString().padStart(2, '0');
+              const endMinute = endDate.getMinutes().toString().padStart(2, '0');
+              return `${hour}:${minute}–${endHour}:${endMinute}`;
             }
             return '';
           },
