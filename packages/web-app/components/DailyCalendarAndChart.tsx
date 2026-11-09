@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Chart as ChartJS, CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, TimeScale, Filler } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { fetchAvailableDates, fetchHistoricalData, DataSourceInfo } from '@/app/lib/api';
 import { useAuth } from 'react-oidc-context';
@@ -10,7 +10,7 @@ import { HourlyPriceEntry } from '@/lib/hourlyTypes';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, TimeScale);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, TimeScale, Filler);
 
 interface ChartPoint {
   timestamp: number;
@@ -19,22 +19,45 @@ interface ChartPoint {
   level: string;
 }
 
-const getLevelColor = (level: string) => {
-  switch (level) {
-    case 'low': return 'rgba(34, 197, 94, 0.7)';
-    case 'medium': return 'rgba(234, 179, 8, 0.7)';
-    case 'high': return 'rgba(239, 68, 68, 0.7)';
-    default: return 'rgba(59, 130, 246, 0.6)';
-  }
-};
+// Create gradient for area fill based on price values
+const createAreaGradient = (chart: any, points: ChartPoint[], currency: 'CZK' | 'EUR') => {
+  if (!chart?.ctx || !chart.chartArea) return 'rgba(59, 130, 246, 0.3)';
 
-const getLevelBorderColor = (level: string) => {
-  switch (level) {
-    case 'low': return 'rgba(34, 197, 94, 1)';
-    case 'medium': return 'rgba(234, 179, 8, 1)';
-    case 'high': return 'rgba(239, 68, 68, 1)';
-    default: return 'rgba(59, 130, 246, 1)';
-  }
+  const ctx = chart.ctx;
+  const chartArea = chart.chartArea;
+  const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+
+  const values = points.map((d) => currency === 'CZK' ? d.priceCZK : d.priceEur);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  const getInterpolatedColor = (value: number) => {
+    if (max === min) return 'rgb(234, 179, 8)';
+    const t = (value - min) / (max - min);
+    if (t <= 0) return 'rgb(34, 197, 94)';
+    if (t >= 1) return 'rgb(239, 68, 68)';
+    if (t < 0.5) {
+      const s = t / 0.5;
+      const r = Math.round(34 + (234 - 34) * s);
+      const g = Math.round(197 + (179 - 197) * s);
+      const b = Math.round(94 + (8 - 94) * s);
+      return `rgb(${r}, ${g}, ${b})`;
+    } else {
+      const s = (t - 0.5) / 0.5;
+      const r = Math.round(234 + (239 - 234) * s);
+      const g = Math.round(179 + (68 - 179) * s);
+      const b = Math.round(8 + (68 - 8) * s);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  };
+
+  points.forEach((d, i) => {
+    const value = currency === 'CZK' ? d.priceCZK : d.priceEur;
+    const pct = i / Math.max(1, points.length - 1);
+    gradient.addColorStop(pct, getInterpolatedColor(value).replace('rgb', 'rgba').replace(')', ', 0.3)'));
+  });
+
+  return gradient;
 };
 
 export default function DailyCalendarAndChart() {
@@ -49,6 +72,7 @@ export default function DailyCalendarAndChart() {
   const [loadingDay, setLoadingDay] = useState(false);
   const [currency, setCurrency] = useState<'CZK' | 'EUR'>('CZK');
   const [dataSource, setDataSource] = useState<DataSourceInfo | null>(null);
+  const chartRef = useRef<any>(null);
 
   useEffect(() => {
     const loadDates = async () => {
@@ -180,12 +204,33 @@ export default function DailyCalendarAndChart() {
     datasets: [{
       label: currency,
       data: chartPoints.map((d) => ({ x: d.timestamp, y: currency === 'CZK' ? d.priceCZK : d.priceEur })),
-      backgroundColor: chartPoints.map((d) => getLevelColor(d.level)),
-      borderColor: chartPoints.map((d) => getLevelBorderColor(d.level)),
-      borderWidth: 0,
-      barThickness: Math.max(2, Math.floor(600 / Math.max(1, chartPoints.length) - 0.5)),
+      borderColor: 'rgba(59, 130, 246, 1)',
+      borderWidth: 2,
+      fill: true,
+      backgroundColor: 'rgba(59, 130, 246, 0.3)',
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.1,
     }],
   }), [currency, chartPoints]);
+
+  // Update gradient fill after chart renders
+  useEffect(() => {
+    const updateGradient = () => {
+      const chart = chartRef.current?.chartInstance || chartRef.current;
+      if (chart?.ctx && chart.chartArea && chart.data.datasets[0]) {
+        const gradient = createAreaGradient(chart, chartPoints, currency);
+        chart.data.datasets[0].backgroundColor = gradient;
+        chart.update('none');
+      }
+    };
+    const timeout = setTimeout(updateGradient, 100);
+    const timeout2 = setTimeout(updateGradient, 300);
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+    };
+  }, [chartPoints, currency, chartRef]);
 
   const chartOptions = useMemo(() => ({
     responsive: true,
@@ -200,7 +245,28 @@ export default function DailyCalendarAndChart() {
         padding: { bottom: 10 },
       },
       legend: { display: false },
-      tooltip: { enabled: true },
+      tooltip: {
+        enabled: true,
+        mode: 'index' as const,
+        intersect: false,
+        callbacks: {
+          label: (context: any) => {
+            const value = context.parsed.y;
+            const price = value.toFixed(2);
+            return `${price} ${currency}/MWh`;
+          },
+          title: (items: any[]) => {
+            const item = items[0];
+            const dataIndex = item.dataIndex;
+            if (dataIndex !== undefined && chartPoints[dataIndex]) {
+              const timestamp = chartPoints[dataIndex].timestamp;
+              const date = new Date(timestamp);
+              return date.toLocaleString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+            }
+            return '';
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -242,7 +308,7 @@ export default function DailyCalendarAndChart() {
                   </div>
                 </div>
                 <div className="h-[calc(100%-48px)]">
-                  <Bar data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
+                  <Line ref={chartRef} data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
                 </div>
               </>
             )}
