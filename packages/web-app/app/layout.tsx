@@ -4,6 +4,7 @@ import AutoRefresh from '../components/AutoRefresh';
 import HourlyPriceScheduler from '../components/HourlyPriceScheduler';
 import AuthProvider from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -26,13 +27,15 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="cs">
+    <html lang="cs" suppressHydrationWarning>
       <body className="antialiased">
-        <AuthProvider configuration={authConfiguration}>
-          {children}
-          <AutoRefresh />
-          <HourlyPriceScheduler />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider configuration={authConfiguration}>
+            {children}
+            <AutoRefresh />
+            <HourlyPriceScheduler />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

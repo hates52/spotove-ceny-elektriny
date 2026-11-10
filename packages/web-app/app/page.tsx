@@ -7,6 +7,7 @@ import DailyCalendarAndChart from '@/components/DailyCalendarAndChart';
 import AuthButton from '@/components/AuthButton';
 import RequireAuth from '@/components/RequireAuth';
 import Image from 'next/image';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Tab = 'spot' | 'energy';
 
@@ -16,20 +17,23 @@ export default function Home() {
 
   return (
     <RequireAuth>
-      <main className="min-h-screen bg-gray-50 py-8">
+      <main className="min-h-screen bg-background py-8">
         <div className="px-4">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
-              <h1 className="text-2xl font-bold text-gray-800">Spotové ceny elektřiny</h1>
+              <h1 className="text-2xl font-bold text-foreground">Spotové ceny elektřiny</h1>
             </div>
-            <AuthButton />
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <AuthButton />
+            </div>
           </div>
           <div className="mb-6 flex gap-2">
             <button
               onClick={() => setTab('spot')}
               className={`px-4 py-2 rounded ${
-                tab === 'spot' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                tab === 'spot' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
               Spot ceny
@@ -37,7 +41,7 @@ export default function Home() {
             <button
               onClick={() => setTab('energy')}
               className={`px-4 py-2 rounded ${
-                tab === 'energy' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                tab === 'energy' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
               Síť a energie

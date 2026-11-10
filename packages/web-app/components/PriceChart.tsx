@@ -385,6 +385,20 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     return ann;
   }, [now, labelContent, chartPoints, highTariff, lowTariff]);
 
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const titleColor = isDark ? 'rgba(255,255,255,0.87)' : 'rgba(0,0,0,0.7)';
+
   const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -401,7 +415,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         display: !!dateRange,
         text: dateRange ? `Spotové ceny silové elektřiny: ${formatDateRange(dateRange.start, dateRange.end)}` : '',
         font: { size: 14, weight: 'bold' as const },
-        color: 'rgba(0,0,0,0.7)',
+        color: titleColor,
         padding: { bottom: 10 },
       },
       legend: {
@@ -478,24 +492,24 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
 
   return (
     <div className="w-full p-4">
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-4">
               {dataSource && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-blue-800">Zdroj dat:</span>
+                  <span className="text-sm font-medium text-primary">Zdroj dat:</span>
                   <a
                     href={dataSource.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline font-medium"
+                    className="text-sm text-primary hover:underline font-medium"
                   >
                     {dataSource.name}
                   </a>
                 </div>
               )}
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-foreground">
                 {actualPrice !== null ? (
                   <>
                     Aktuální cena: <strong>{actualPrice.toFixed(2)} {currency}/MWh</strong>
@@ -506,59 +520,62 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
               </div>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-gray-700 mr-2">Měna:</span>
-              {(['CZK', 'EUR'] as const).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCurrency(c)}
-                  className={`mx-1 px-2 py-1 text-xs rounded ${
-                    currency === c
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              <span className="text-sm text-muted-foreground mr-2">Měna:</span>
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                {(['CZK', 'EUR'] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCurrency(c)}
+                    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      currency === c
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                    title={c === 'CZK' ? 'České koruny' : 'Eura'}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          {dataSource && <div className="text-xs text-blue-600">{dataSource.description}</div>}
+          {dataSource && <div className="text-xs text-primary/80">{dataSource.description}</div>}
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-4">
         <div>
-          <span className="text-sm text-gray-700 mr-2">Vysoký tarif:</span>
+          <span className="text-sm text-muted-foreground mr-2">Vysoký tarif:</span>
           <input
             type="number"
             step="any"
             value={highTariff}
             onChange={(e) => setHighTariff(e.target.value)}
             placeholder="Cena vysokého tarifu"
-            className="px-2 py-1 border rounded text-sm"
+            className="px-2 py-1 border border-input bg-background rounded text-sm text-foreground"
           />
         </div>
         <div>
-          <span className="text-sm text-gray-700 mr-2">Nízký tarif:</span>
+          <span className="text-sm text-muted-foreground mr-2">Nízký tarif:</span>
           <input
             type="number"
             step="any"
             value={lowTariff}
             onChange={(e) => setLowTariff(e.target.value)}
             placeholder="Cena nízkého tarifu"
-            className="px-2 py-1 border rounded text-sm"
+            className="px-2 py-1 border border-input bg-background rounded text-sm text-foreground"
           />
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded">
           {error}
         </div>
       )}
 
       {chartPoints.length === 0 ? (
-        <div className="flex items-center justify-center h-64 text-gray-500">
+        <div className="flex items-center justify-center h-64 text-muted-foreground">
           Zatím nejsou k dispozici žádná data.
         </div>
       ) : (
@@ -611,20 +628,20 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         </>
       )}
 
-      <div className="mt-4 p-3 bg-gray-50 rounded border text-sm">
-        <div className="font-semibold mb-2">Legenda cenových úrovní:</div>
+      <div className="mt-4 p-3 bg-muted/50 rounded border border-border text-sm">
+        <div className="font-semibold mb-2 text-card-foreground">Legenda cenových úrovní:</div>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 bg-green-500 rounded"></span>
-            <span><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče.</span>
+            <span className="text-card-foreground"><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče.</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 bg-yellow-500 rounded"></span>
-            <span><strong>medium (střední):</strong> Průměrná, běžná cena v rámci dne.</span>
+            <span className="text-card-foreground"><strong>medium (střední):</strong> Průměrná, běžná cena v rámci dne.</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 bg-red-500 rounded"></span>
-            <span><strong>high (vysoká):</strong> Elektřina je drahá. Je vhodné odložit spotřebu a vypnout volitelné zátěže.</span>
+            <span className="text-card-foreground"><strong>high (vysoká):</strong> Elektřina je drahá. Je vhodné odložit spotřebu a vypnout volitelné zátěže.</span>
           </div>
         </div>
       </div>

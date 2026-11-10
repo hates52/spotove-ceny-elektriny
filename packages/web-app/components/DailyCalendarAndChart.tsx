@@ -159,15 +159,15 @@ export default function DailyCalendarAndChart() {
     const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
     return (
-      <div className="bg-white rounded shadow p-4">
+      <div className="bg-card rounded shadow border border-border p-4">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={prevMonth} className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">←</button>
-          <div className="font-semibold">{format(currentMonth, 'MMMM yyyy', { locale: cs })}</div>
-          <button onClick={nextMonth} className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">→</button>
+          <button onClick={prevMonth} className="px-2 py-1 bg-secondary rounded hover:bg-secondary/80 text-secondary-foreground">←</button>
+          <div className="font-semibold text-card-foreground">{format(currentMonth, 'MMMM yyyy', { locale: cs })}</div>
+          <button onClick={nextMonth} className="px-2 py-1 bg-secondary rounded hover:bg-secondary/80 text-secondary-foreground">→</button>
         </div>
         <div className="grid grid-cols-7 gap-1 text-xs">
           {['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'].map((d) => (
-            <div key={d} className="text-center text-gray-600 py-1">{d}</div>
+            <div key={d} className="text-center text-muted-foreground py-1">{d}</div>
           ))}
           {Array.from({ length: startOffset }).map((_, i) => (
             <div key={`empty-${i}`} />
@@ -182,9 +182,9 @@ export default function DailyCalendarAndChart() {
                 className={`p-2 rounded text-center text-sm ${
                   day.available
                     ? isSelected
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-green-100 hover:bg-green-200 text-gray-800 cursor-pointer'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-green-500/20 hover:bg-green-500/30 text-green-700 dark:text-green-400 cursor-pointer'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
                 }`}
               >
                 {day.date.getDate()}
@@ -192,9 +192,9 @@ export default function DailyCalendarAndChart() {
             );
           })}
         </div>
-        <div className="mt-3 text-xs text-gray-600">
-          <span className="inline-block w-3 h-3 bg-green-100 mr-1"></span> Dostupné
-          <span className="inline-block w-3 h-3 bg-gray-100 ml-3 mr-1"></span> Nedostupné
+        <div className="mt-3 text-xs text-muted-foreground">
+          <span className="inline-block w-3 h-3 bg-green-500/30 mr-1 rounded"></span> Dostupné
+          <span className="inline-block w-3 h-3 bg-muted ml-3 mr-1 rounded border border-border"></span> Nedostupné
         </div>
       </div>
     );
@@ -232,6 +232,20 @@ export default function DailyCalendarAndChart() {
     };
   }, [chartPoints, currency, chartRef]);
 
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const titleColor = isDark ? 'rgba(255,255,255,0.87)' : 'rgba(0,0,0,0.7)';
+
   const chartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -241,7 +255,7 @@ export default function DailyCalendarAndChart() {
         display: !!selectedDate,
         text: selectedDate ? `Denní graf: ${format(new Date(selectedDate), 'dd.MM.yyyy', { locale: cs })}` : '',
         font: { size: 14, weight: 'bold' as const },
-        color: 'rgba(0,0,0,0.7)',
+        color: titleColor,
         padding: { bottom: 10 },
       },
       legend: { display: false },
@@ -285,31 +299,44 @@ export default function DailyCalendarAndChart() {
   }), [selectedDate]);
 
   return (
-    <div className="w-full mt-8 p-4 bg-white rounded shadow">
-      <h2 className="text-lg font-semibold mb-4">Detailní pohled na den</h2>
-      {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">{error}</div>}
+    <div className="w-full mt-8 p-4 bg-card rounded shadow border border-border">
+      <h2 className="text-lg font-semibold mb-4 text-card-foreground">Detailní pohled na den</h2>
+      {error && <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded text-sm">{error}</div>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="flex flex-col">
-          {loadingDates ? <div className="text-gray-500">Načítání kalendáře...</div> : <div className="min-h-[448px]">{renderCalendar()}</div>}
+          {loadingDates ? <div className="text-muted-foreground">Načítání kalendáře...</div> : <div className="min-h-[448px]">{renderCalendar()}</div>}
         </div>
         <div className="flex flex-col">
-          <div className="h-[400px] bg-gray-50 rounded p-2">
-            {!selectedDate && <div className="flex items-center justify-center h-full text-gray-500">Klikněte na dostupný den v kalendáři.</div>}
-            {selectedDate && loadingDay && <div className="flex items-center justify-center h-full text-gray-500">Načítání dat...</div>}
+          <div className="h-[400px] bg-muted/50 rounded p-2">
+            {!selectedDate && <div className="flex items-center justify-center h-full text-muted-foreground">Klikněte na dostupný den v kalendáři.</div>}
+            {selectedDate && loadingDay && <div className="flex items-center justify-center h-full text-muted-foreground">Načítání dat...</div>}
             {selectedDate && !loadingDay && chartPoints.length > 0 && (
               <>
-                <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm flex items-center justify-between">
+                <div className="mb-2 p-2 bg-primary/10 border border-primary/20 rounded text-sm flex items-center justify-between">
                   <span>
-                    <span className="font-medium text-blue-800">Zdroj dat: </span>
+                    <span className="font-medium text-primary">Zdroj dat: </span>
                     {dataSource ? (
-                      <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{dataSource.name}</a>
+                      <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{dataSource.name}</a>
                     ) : '-'}
                   </span>
                   <div>
-                    <span className="text-sm text-gray-700 mr-2">Měna:</span>
-                    {(['CZK', 'EUR'] as const).map((c) => (
-                      <button key={c} onClick={() => setCurrency(c)} className={`mx-1 px-2 py-1 text-xs rounded ${currency === c ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{c}</button>
-                    ))}
+                    <span className="text-sm text-muted-foreground mr-2">Měna:</span>
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                      {(['CZK', 'EUR'] as const).map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCurrency(c)}
+                          className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
+                            currency === c
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                          title={c === 'CZK' ? 'České koruny' : 'Eura'}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="h-[calc(100%-48px)]">
@@ -317,7 +344,7 @@ export default function DailyCalendarAndChart() {
                 </div>
               </>
             )}
-            {selectedDate && !loadingDay && chartPoints.length === 0 && <div className="flex items-center justify-center h-full text-gray-500">Pro tento den nejsou k dispozici žádná data.</div>}
+            {selectedDate && !loadingDay && chartPoints.length === 0 && <div className="flex items-center justify-center h-full text-muted-foreground">Pro tento den nejsou k dispozici žádná data.</div>}
           </div>
         </div>
       </div>
