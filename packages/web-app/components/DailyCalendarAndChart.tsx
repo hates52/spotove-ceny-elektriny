@@ -319,24 +319,21 @@ export default function DailyCalendarAndChart() {
                       <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{dataSource.name}</a>
                     ) : '-'}
                   </span>
-                  <div>
-                    <span className="text-sm text-muted-foreground mr-2">Měna:</span>
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                      {(['CZK', 'EUR'] as const).map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setCurrency(c)}
-                          className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
-                            currency === c
-                              ? 'bg-indigo-600 text-white shadow-sm'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                          }`}
-                          title={c === 'CZK' ? 'České koruny' : 'Eura'}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                    {(['CZK', 'EUR'] as const).map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setCurrency(c)}
+                        className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
+                          currency === c
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                        title={c === 'CZK' ? 'České koruny' : 'Eura'}
+                      >
+                        {c}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="h-[calc(100%-48px)]">

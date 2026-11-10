@@ -519,8 +519,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
                 )}
               </div>
             </div>
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-2">Měna:</span>
+            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                 {(['CZK', 'EUR'] as const).map((c) => (
                   <button
