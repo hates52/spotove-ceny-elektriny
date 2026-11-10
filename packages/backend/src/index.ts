@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
 import { fetchAndStoreHourlyPrices } from './services/priceService';
 import { generate } from 'selfsigned';
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 import { startupLogger, cronLogger, apiLogger } from './lib/logger';
 
 const rootDir = path.resolve(__dirname, '..', '..', '..');
@@ -41,8 +41,8 @@ async function ensureTodaysData(): Promise<void> {
   }
 }
 
-function setupCronJob(): void {
-  cron.schedule(CRON_SCHEDULE, async () => {
+function setupCronJob(): ScheduledTask[] {
+  const task = cron.schedule(CRON_SCHEDULE, async () => {
     cronLogger.info('cron', `Running scheduled fetchAndStoreHourlyPrices... schedule=${CRON_SCHEDULE}`);
     try {
       await fetchAndStoreHourlyPrices();
@@ -52,6 +52,7 @@ function setupCronJob(): void {
     }
   });
   cronLogger.info('cron', `Scheduled job started schedule=${CRON_SCHEDULE}`);
+  return [task];
 }
 
 const app = express();
@@ -142,11 +143,55 @@ app.get('/api/me', async (req, res) => {
 });
 
 ensureTodaysData().then(() => {
-  setupCronJob();
+  const cronTasks = setupCronJob();
   const credentials = getTlsCredentials();
-  https.createServer(credentials, app).listen(PORT, () => {
+  const server = https.createServer(credentials, app).listen(PORT, () => {
     startupLogger.info('startup', `Backend HTTPS server running on port ${PORT}`);
   });
+
+  // Track in-flight requests for graceful shutdown
+  let activeRequests = 0;
+  const requestTracker = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    activeRequests++;
+    res.on('finish', () => { activeRequests--; });
+    res.on('close', () => { activeRequests--; });
+    next();
+  };
+  app.use(requestTracker);
+
+  const shutdown = (signal: string) => {
+    startupLogger.info('startup', `Received ${signal}, shutting down gracefully...`);
+    
+    // Stop cron tasks
+    cronTasks.forEach(task => task.stop());
+    cronLogger.info('cron', 'All scheduled tasks stopped');
+    
+    // Stop accepting new connections
+    server.close(() => {
+      startupLogger.info('startup', 'HTTP server closed (no new connections accepted)');
+    });
+
+    // Wait for in-flight requests to complete
+    const waitForRequests = () => {
+      if (activeRequests === 0) {
+        startupLogger.info('startup', 'All in-flight requests completed');
+        process.exit(0);
+      } else {
+        startupLogger.info('startup', `Waiting for ${activeRequests} in-flight request(s) to complete...`);
+        setTimeout(waitForRequests, 100);
+      }
+    };
+    waitForRequests();
+
+    // Force shutdown after 30s
+    setTimeout(() => {
+      startupLogger.error('startup', `Forced shutdown after timeout (${activeRequests} requests still active)`);
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }).catch((err) => {
   startupLogger.error('startup', `Failed to ensure today's data: ${String(err)}`);
   process.exit(1);
