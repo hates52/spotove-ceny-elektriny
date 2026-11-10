@@ -8,6 +8,7 @@ import AuthButton from '@/components/AuthButton';
 import RequireAuth from '@/components/RequireAuth';
 import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CurrencyProvider, CurrencyToggle } from '@/components/CurrencyContext';
 
 type Tab = 'spot' | 'energy';
 
@@ -16,47 +17,50 @@ export default function Home() {
   const [lastLevel, setLastLevel] = useState<string | null>(null);
 
   return (
-    <RequireAuth>
-      <main className="min-h-screen bg-background py-8">
-        <div className="px-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
-              <h1 className="text-2xl font-bold text-foreground">Spotové ceny elektřiny</h1>
+    <CurrencyProvider>
+      <RequireAuth>
+        <main className="min-h-screen bg-background py-8">
+          <div className="px-4">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
+                <h1 className="text-2xl font-bold text-foreground">Spotové ceny elektřiny</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <CurrencyToggle />
+                <ThemeToggle />
+                <AuthButton />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <AuthButton />
+            <div className="mb-6 flex gap-2">
+              <button
+                onClick={() => setTab('spot')}
+                className={`px-4 py-2 rounded ${
+                  tab === 'spot' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                Spot ceny
+              </button>
+              <button
+                onClick={() => setTab('energy')}
+                className={`px-4 py-2 rounded ${
+                  tab === 'energy' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                Síť a energie
+              </button>
             </div>
-          </div>
-          <div className="mb-6 flex gap-2">
-            <button
-              onClick={() => setTab('spot')}
-              className={`px-4 py-2 rounded ${
-                tab === 'spot' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              Spot ceny
-            </button>
-            <button
-              onClick={() => setTab('energy')}
-              className={`px-4 py-2 rounded ${
-                tab === 'energy' ? 'bg-indigo-600 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              Síť a energie
-            </button>
-          </div>
 
-          {tab === 'spot' && (
-            <>
-              <PriceChart lastLevel={lastLevel} onLevelChange={setLastLevel} />
-              <DailyCalendarAndChart />
-            </>
-          )}
-          {tab === 'energy' && <EnergyFlow />}
-        </div>
-      </main>
-    </RequireAuth>
+            {tab === 'spot' && (
+              <>
+                <PriceChart lastLevel={lastLevel} onLevelChange={setLastLevel} />
+                <DailyCalendarAndChart />
+              </>
+            )}
+            {tab === 'energy' && <EnergyFlow />}
+          </div>
+        </main>
+      </RequireAuth>
+    </CurrencyProvider>
   );
 }

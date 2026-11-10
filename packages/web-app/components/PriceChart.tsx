@@ -33,6 +33,7 @@ import { fetchDataSourceInfo, DataSourceInfo } from '@/app/lib/api';
 import { HourlyPriceEntry, HourlyPriceData } from '@/lib/hourlyTypes';
 import { getCookie, setCookie } from '@/lib/cookies';
 import { useAuth } from 'react-oidc-context';
+import { useCurrency } from './CurrencyContext';
 
 interface PriceChartProps {
   lastLevel: string | null;
@@ -62,10 +63,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   const [error, setError] = useState<string | null>(null);
   const [currentPrice, setCurrentPrice] = useState<CurrentPrice | null>(null);
   const [dataSource, setDataSource] = useState<DataSourceInfo | null>(null);
-  const [currency, setCurrency] = useState<'CZK' | 'EUR'>(() => {
-    const cookie = getCookie('spot_currency');
-    return cookie === 'EUR' ? 'EUR' : 'CZK';
-  });
   const [highTariff, setHighTariff] = useState<string>(() => {
     return getCookie('spot_high_tariff') || '';
   });
@@ -74,6 +71,8 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   });
   const [dataHash, setDataHash] = useState<string>('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
+
+  const { currency } = useCurrency();
 
   const loadData = async () => {
     try {
@@ -118,10 +117,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     loadData();
   }, [token]);
 
-  // useEffect(() => {
-  //   fetchDataSourceInfo().then(setDataSource).catch(console.error);
-  // }, []);
-
   useEffect(() => {
     const fetchCurrent = async () => {
       try {
@@ -142,10 +137,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     const intervalId = setInterval(fetchCurrent, 10000);
     return () => clearInterval(intervalId);
   }, [onLevelChange]);
-
-  useEffect(() => {
-    setCookie('spot_currency', currency);
-  }, [currency]);
 
   useEffect(() => {
     setCookie('spot_high_tariff', highTariff);
@@ -174,7 +165,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
           right: chart.current.chartArea.right,
         });
       } else {
-        // Fallback - try to get from canvas
         const canvas = chart?.canvas || document.querySelector('canvas');
         if (canvas) {
           const rect = canvas.getBoundingClientRect();
@@ -273,7 +263,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
       borderColor: 'rgba(59, 130, 246, 1)',
       borderWidth: 2,
       fill: true,
-      backgroundColor: 'rgba(59, 130, 246, 0.3)', // fallback, will be replaced by gradient
+      backgroundColor: 'rgba(59, 130, 246, 0.3)',
       pointRadius: 0,
       pointHoverRadius: 4,
       tension: 0.1,
@@ -292,7 +282,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         chart.update('none');
       }
     };
-    // Wait for chart to be fully rendered
     const timeout = setTimeout(updateGradient, 100);
     const timeout2 = setTimeout(updateGradient, 300);
     return () => {
@@ -302,7 +291,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   }, [chartPoints, currency, chartRef]);
 
   const now = Date.now();
-  // Calculate current quarter-hour (15-min interval)
   const nowDate = new Date();
   const currentQuarterHour = Math.floor(nowDate.getMinutes() / 15) * 15;
   const currentQuarterTimestamp = new Date(
@@ -314,7 +302,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     0
   ).getTime();
 
-  // Find exact match for current quarter-hour
   const currentPoint = chartPoints.find(
     (p) => p.timestamp === currentQuarterTimestamp
   );
@@ -517,24 +504,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
                 ) : (
                   'Načítání aktuální ceny...'
                 )}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                {(['CZK', 'EUR'] as const).map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCurrency(c)}
-                    className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
-                      currency === c
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                    title={c === 'CZK' ? 'České koruny' : 'Eura'}
-                  >
-                    {c}
-                  </button>
-                ))}
               </div>
             </div>
           </div>

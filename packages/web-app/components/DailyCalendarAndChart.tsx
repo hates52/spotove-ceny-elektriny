@@ -6,6 +6,7 @@ import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { fetchAvailableDates, fetchHistoricalData, DataSourceInfo } from '@/app/lib/api';
 import { useAuth } from 'react-oidc-context';
+import { useCurrency } from './CurrencyContext';
 import { HourlyPriceEntry } from '@/lib/hourlyTypes';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -70,9 +71,10 @@ export default function DailyCalendarAndChart() {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
   const [loadingDay, setLoadingDay] = useState(false);
-  const [currency, setCurrency] = useState<'CZK' | 'EUR'>('CZK');
   const [dataSource, setDataSource] = useState<DataSourceInfo | null>(null);
   const chartRef = useRef<any>(null);
+
+  const { currency } = useCurrency();
 
   useEffect(() => {
     const loadDates = async () => {
@@ -319,22 +321,6 @@ export default function DailyCalendarAndChart() {
                       <a href={dataSource.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{dataSource.name}</a>
                     ) : '-'}
                   </span>
-                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                    {(['CZK', 'EUR'] as const).map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setCurrency(c)}
-                        className={`flex items-center px-3 py-1.5 text-sm rounded-md transition-colors ${
-                          currency === c
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                        title={c === 'CZK' ? 'České koruny' : 'Eura'}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <div className="h-[calc(100%-48px)]">
                   <Line ref={chartRef} data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
