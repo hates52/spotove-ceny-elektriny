@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "test": "next test",
-    "security": "npm audit --audit-level=moderate"
+    "security": "npm audit --audit-level=high"
   },
   "dependencies": {
     "chart.js": "^4.4.1",

@@ -10,7 +10,7 @@
     "test": "tsx test/**/*.test.ts",
     "lint": "eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
-    "security": "npm audit --audit-level=moderate"
+    "security": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@types/dotenv": "^6.1.1",
