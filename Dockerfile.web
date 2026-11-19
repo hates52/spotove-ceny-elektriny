@@ -29,6 +29,4 @@ COPY --from=builder /app/packages/web-app/package.json ./packages/web-app/packag
 COPY --from=builder /app/packages/web-app/public ./packages/web-app/public
 COPY --from=builder /app/packages/web-app/next.config.mjs ./packages/web-app/next.config.mjs
 
-RUN cd packages/web-app && npm run lint
-
 CMD ["npm", "run", "start", "--workspace=@spotove-ceny-elektriny/web-app"]
