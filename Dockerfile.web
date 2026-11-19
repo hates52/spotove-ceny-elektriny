@@ -29,6 +29,6 @@ COPY --from=builder /app/packages/web-app/package.json ./packages/web-app/packag
 COPY --from=builder /app/packages/web-app/public ./packages/web-app/public
 COPY --from=builder /app/packages/web-app/next.config.js ./packages/web-app/next.config.js
 
-RUN cd packages/web-app && npx eslint --max-warnings=0 .
+RUN cd packages/web-app && npm run lint
 
 CMD ["npm", "run", "start", "--workspace=@spotove-ceny-elektriny/web-app"]

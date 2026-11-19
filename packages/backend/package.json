@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "test": "tsx test/**/*.test.ts",
     "lint": "eslint . --max-warnings=0",
+    "type-check": "tsc --noEmit",
     "security": "npm audit --audit-level=moderate"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@types/node": "^20.12.12",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
     "tsx": "^4.10.5",
     "typescript": "^5.4.5"

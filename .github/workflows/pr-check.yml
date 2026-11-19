@@ -33,11 +33,11 @@ jobs:
 
       - name: Lint backend
         working-directory: packages/backend
-        run: npx eslint --max-warnings=0 .
+        run: npm run lint
 
       - name: Type-check backend
         working-directory: packages/backend
-        run: npx tsc --noEmit
+        run: npm run type-check
 
       - name: Security audit
         run: npm run security --workspace=@spotove-ceny-elektriny/backend

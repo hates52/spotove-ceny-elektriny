@@ -28,6 +28,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=builder /app/packages/backend/package.json ./packages/backend/package.json
 
-RUN cd packages/backend && npx eslint --max-warnings=0 .
+RUN cd packages/backend && npm run lint
 
 CMD ["node", "packages/backend/dist/index.js"]
