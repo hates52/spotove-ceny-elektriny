@@ -1,4 +1,4 @@
-import { HourlyPriceData } from '../types/hourlyTypes';
+import { HourlyPriceData, HourlyPriceEntry } from '../types/hourlyTypes';
 
 export async function fetchCurrentPrice() {
   const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-actual-price-json');
@@ -7,7 +7,7 @@ export async function fetchCurrentPrice() {
     throw new Error(`Failed to fetch price: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as unknown as Record<string, unknown>;
 }
 
 export async function fetchHourlyPrices(): Promise<{ today: HourlyPriceData; tomorrow: HourlyPriceData }> {
@@ -17,7 +17,7 @@ export async function fetchHourlyPrices(): Promise<{ today: HourlyPriceData; tom
     throw new Error(`Failed to fetch hourly prices: ${response.status}`);
   }
 
-  const data: Record<string, unknown> = await response.json();
+  const data: Record<string, unknown> = await response.json() as unknown as Record<string, unknown>;
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -32,12 +32,12 @@ export async function fetchHourlyPrices(): Promise<{ today: HourlyPriceData; tom
 
   const todayFileForStorage = {
     date: todayStr,
-    data: data.hoursToday || [],
+    data: (data.hoursToday ?? []) as HourlyPriceEntry[],
   };
 
   const tomorrowFileForStorage = {
     date: tomorrowStr,
-    data: data.hoursTomorrow || [],
+    data: (data.hoursTomorrow ?? []) as HourlyPriceEntry[],
   };
 
   return { today: todayFileForStorage, tomorrow: tomorrowFileForStorage };

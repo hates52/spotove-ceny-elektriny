@@ -5,7 +5,7 @@ import fs from 'fs';
 import priceRoutes from './routes/price';
 import instanceRoutes from './routes/instance';
 import authRoutes from './routes/auth';
-import { requireAuth } from './middleware/auth';
+import { requireAuth, AuthRequest } from './middleware/auth';
 import path from 'path';
 import dotenv from 'dotenv';
 import { getFreezePriceData } from './lib/storage';
@@ -98,7 +98,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api', (req, res, next) => {
   if (req.path === '/instance') return next();
-  return requireAuth(req as Express.Request, res, next);
+  return requireAuth(req as AuthRequest, res, next);
 });
 function accessLog(req: express.Request, res: express.Response, start: number): void {
   const u = (req as Express.Request & { user?: Record<string, unknown> }).user || {};

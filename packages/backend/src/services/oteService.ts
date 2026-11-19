@@ -26,8 +26,8 @@ function calculateLevels(entries: HourlyPriceEntry[]): HourlyPriceEntry[] {
   if (entries.length === 0) return entries;
 
   const prices = entries.map(e => e.priceEur).sort((a, b) => a - b);
-  const lowThreshold = prices[Math.floor(prices.length * 0.33)];
-  const highThreshold = prices[Math.floor(prices.length * 0.66)];
+  const lowThreshold = prices[Math.floor(prices.length * 0.33)] as number;
+  const highThreshold = prices[Math.floor(prices.length * 0.66)] as number;
 
   return entries.map((entry, index) => {
     let level = 'medium';
@@ -56,21 +56,21 @@ function calculateLevels(entries: HourlyPriceEntry[]): HourlyPriceEntry[] {
 
 function parseOTEPriceData(rawData: Record<string, unknown>[]): HourlyPriceEntry[] {
   const parsed = rawData.map((item: Record<string, unknown>) => {
-    const priceEur = item.Price ?? item.price ?? 0;
+    const priceEur = Number(item.Price ?? item.price ?? 0);
     const priceCZK = Math.round(priceEur * 24.5);
-    
+
     let hour = 0;
     let minute = 0;
-    
-    if (item.PeriodIndex !== undefined) {
-      const periodIndex = parseInt(item.PeriodIndex, 10);
+
+    if (item.PeriodIndex !== undefined && item.PeriodIndex !== null) {
+      const periodIndex = parseInt(String(item.PeriodIndex), 10);
       hour = Math.floor((periodIndex - 1) / 4);
       minute = ((periodIndex - 1) % 4) * 15;
-    } else if (item.Hour !== undefined) {
-      hour = parseInt(item.Hour, 10);
+    } else if (item.Hour !== undefined && item.Hour !== null) {
+      hour = parseInt(String(item.Hour), 10);
       minute = 0;
     }
-    
+
     return {
       hour,
       minute,
@@ -86,7 +86,7 @@ function parseOTEPriceData(rawData: Record<string, unknown>[]): HourlyPriceEntry
 }
 
 export async function fetchOTEPricesForDate(date: Date): Promise<HourlyPriceEntry[]> {
-  const client = await getSoapClient();
+  const client = await getSoapClient() as any;
   const dateStr = formatDateForOTE(date);
 
   try {
@@ -94,13 +94,13 @@ export async function fetchOTEPricesForDate(date: Date): Promise<HourlyPriceEntr
       StartDate: dateStr,
       EndDate: dateStr,
       PeriodResolution: 'PT15M',
-    });
+    }) as any;
 
     if (!result || !result.Result || !result.Result.Item) {
       return [];
     }
 
-    return parseOTEPriceData(result.Result.Item);
+    return parseOTEPriceData(result.Result.Item as Record<string, unknown>[]);
   } catch (error) {
     console.error(`[OTE] Failed to fetch prices for ${dateStr}:`, error);
     throw error;
