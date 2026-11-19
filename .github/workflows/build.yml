@@ -24,8 +24,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: ${{ github.repository_owner }}/spotove-ceny-elektriny/backend
-  IMAGE_NAME_WEB: ${{ github.repository_owner }}/spotove-ceny-elektriny/web
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
+  IMAGE_NAME_WEB: ${{ github.repository }}/web
   NODE_VERSION: "26"
   # Platforms for Go cross-compilation
   PLATFORMS: linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64
