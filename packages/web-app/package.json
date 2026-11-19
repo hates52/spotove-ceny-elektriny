@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "next test",
+    "security": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "chart.js": "^4.4.1",

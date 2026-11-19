@@ -1,0 +1,66 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  verify-backend:
+    name: Verify Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint backend
+        run: npm run lint --workspace=@spotove-ceny-elektriny/backend
+
+      - name: Security audit
+        run: npm run security --workspace=@spotove-ceny-elektriny/backend
+
+      # - name: Run backend tests
+      #   run: npm test --workspace=@spotove-ceny-elektriny/backend
+
+  verify-web-app:
+    name: Verify Web App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint web-app
+        run: npm run lint --workspace=@spotove-ceny-elektriny/web-app
+
+      - name: Security audit
+        run: npm run security --workspace=@spotove-ceny-elektriny/web-app
+
+      # - name: Run web-app tests
+      #   run: npm test --workspace=@spotove-ceny-elektriny/web-app
