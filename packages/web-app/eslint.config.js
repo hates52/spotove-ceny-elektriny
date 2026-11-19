@@ -1,3 +1,3 @@
-import nextEslintConfig from 'eslint-config-next';
+import nextConfig from 'eslint-config-next';
 
-export default nextEslintConfig();
+export default nextConfig;
