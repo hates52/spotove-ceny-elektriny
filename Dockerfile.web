@@ -29,4 +29,6 @@ COPY --from=builder /app/packages/web-app/package.json ./packages/web-app/packag
 COPY --from=builder /app/packages/web-app/public ./packages/web-app/public
 COPY --from=builder /app/packages/web-app/next.config.js ./packages/web-app/next.config.js
 
+RUN cd packages/web-app && npx next lint
+
 CMD ["npm", "run", "start", "--workspace=@spotove-ceny-elektriny/web-app"]

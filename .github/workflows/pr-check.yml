@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Lint backend
-        run: npm run lint --workspace=@spotove-ceny-elektriny/backend
+        run: cd packages/backend && npx tsc --noEmit
 
       - name: Security audit
         run: npm run security --workspace=@spotove-ceny-elektriny/backend
@@ -57,7 +57,7 @@ jobs:
         run: npm ci
 
       - name: Lint web-app
-        run: npm run lint --workspace=@spotove-ceny-elektriny/web-app
+        run: cd packages/web-app && npx next lint
 
       - name: Security audit
         run: npm run security --workspace=@spotove-ceny-elektriny/web-app
