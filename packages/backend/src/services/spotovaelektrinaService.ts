@@ -1,8 +1,7 @@
 import { HourlyPriceData } from '../types/hourlyTypes';
 
 export async function fetchCurrentPrice() {
-  const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-actual-price-json', {
-  } as any);
+  const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-actual-price-json');
 
   if (!response.ok) {
     throw new Error(`Failed to fetch price: ${response.status}`);
@@ -12,14 +11,13 @@ export async function fetchCurrentPrice() {
 }
 
 export async function fetchHourlyPrices(): Promise<{ today: HourlyPriceData; tomorrow: HourlyPriceData }> {
-  const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-prices-json-qh', {
-  } as any);
+  const response = await fetch('https://spotovaelektrina.cz/api/v1/price/get-prices-json-qh');
 
   if (!response.ok) {
     throw new Error(`Failed to fetch hourly prices: ${response.status}`);
   }
 
-  const data: any = await response.json();
+  const data: Record<string, unknown> = await response.json();
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');

@@ -85,7 +85,7 @@ export async function fetchCurrentPrice() {
     };
   }
 
-  const priceData = await fetchSpotovaElektrinaCurrentPrice() as Record<string, any>;
+  const priceData = await fetchSpotovaElektrinaCurrentPrice() as Record<string, unknown>;
   return {
     ...priceData,
     dataSource: sourceInfo,

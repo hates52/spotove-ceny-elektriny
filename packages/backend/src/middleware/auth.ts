@@ -35,7 +35,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
       return res.status(401).json({ error: 'Missing token' });
     }
 
-    const verifyOptions: any = {};
+    const verifyOptions: Record<string, unknown> = {};
     if (TENANT_ID) {
       verifyOptions.issuer = [
         `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,

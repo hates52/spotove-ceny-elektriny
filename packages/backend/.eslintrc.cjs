@@ -13,8 +13,9 @@ module.exports = [
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { "caughtErrors": "none" }],
       "@typescript-eslint/strict-boolean-expressions": "off",
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 ];

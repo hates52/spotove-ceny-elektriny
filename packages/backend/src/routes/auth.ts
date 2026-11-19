@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 const router = Router();
 
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: (req as any).user });
+  res.json({ user: (req as Express.Request & { user?: Record<string, unknown> }).user });
 });
 
 export default router;

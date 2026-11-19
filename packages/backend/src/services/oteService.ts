@@ -3,7 +3,7 @@ import { HourlyPriceData, HourlyPriceEntry } from '../types/hourlyTypes';
 const OTE_WSDL_URL = 'https://www.ote-cr.cz/pw-data/services/PublicDataService?wsdl';
 const OTE_SERVICE_URL = 'https://www.ote-cr.cz/pw-data/services/PublicDataService';
 
-let soapClient: any = null;
+let soapClient: unknown = null;
 
 async function getSoapClient() {
   if (!soapClient) {
@@ -54,8 +54,8 @@ function calculateLevels(entries: HourlyPriceEntry[]): HourlyPriceEntry[] {
   });
 }
 
-function parseOTEPriceData(rawData: any[]): HourlyPriceEntry[] {
-  const parsed = rawData.map((item: any) => {
+function parseOTEPriceData(rawData: Record<string, unknown>[]): HourlyPriceEntry[] {
+  const parsed = rawData.map((item: Record<string, unknown>) => {
     const priceEur = item.Price ?? item.price ?? 0;
     const priceCZK = Math.round(priceEur * 24.5);
     

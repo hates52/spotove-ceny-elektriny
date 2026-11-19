@@ -6,7 +6,7 @@ const router = Router();
 router.get('/data-source', async (_req: Request, res: Response) => {
   try {
     res.json(getDataSourceInfo());
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch data source info' });
   }
 });
@@ -15,7 +15,7 @@ router.get('/current', async (_req: Request, res: Response) => {
   try {
     const data = await fetchCurrentPrice();
     res.json(data);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch price' });
   }
 });
@@ -24,7 +24,7 @@ router.get('/hourly', async (_req: Request, res: Response) => {
   try {
     const data = await fetchAndStoreHourlyPrices();
     res.json(data);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch hourly prices' });
   }
 });
@@ -34,7 +34,7 @@ router.get('/today-tomorrow', async (_req: Request, res: Response) => {
     const { getTodayAndTomorrowData } = await import('../services/dataService');
     const data = await getTodayAndTomorrowData();
     res.json(data);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch data' });
   }
 });
@@ -49,7 +49,7 @@ router.get('/historical', async (req: Request, res: Response) => {
     }
     const data = await getHistoricalData(startDate, endDate);
     res.json(data);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch historical data' });
   }
 });
@@ -59,7 +59,7 @@ router.get('/dates', async (_req: Request, res: Response) => {
     const { getAvailableDates } = await import('../services/dataService');
     const data = await getAvailableDates();
     res.json(data);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch dates' });
   }
 });

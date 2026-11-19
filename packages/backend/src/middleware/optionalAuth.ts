@@ -34,7 +34,7 @@ export async function optionalAuth(req: AuthRequest, res: Response, next: NextFu
       return next();
     }
 
-    const verifyOptions: any = {};
+    const verifyOptions: Record<string, unknown> = {};
     if (ISSUER) {
       verifyOptions.issuer = ISSUER;
     } else if (TENANT_ID) {
@@ -61,7 +61,7 @@ export async function optionalAuth(req: AuthRequest, res: Response, next: NextFu
     req.user = { ...payload, groups };
     req.authenticated = true;
     next();
-  } catch (err) {
+  } catch (_err) {
     req.authenticated = false;
     next();
   }
