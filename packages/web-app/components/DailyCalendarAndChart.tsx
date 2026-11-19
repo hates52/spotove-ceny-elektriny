@@ -63,7 +63,7 @@ const createAreaGradient = (chart: any, points: ChartPoint[], currency: 'CZK' | 
 
 export default function DailyCalendarAndChart() {
   const auth = useAuth();
-  const token = auth.user?.access_token;
+  const token = auth?.user?.access_token;
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -298,7 +298,7 @@ export default function DailyCalendarAndChart() {
       },
       y: { grid: { display: false }, beginAtZero: true },
     },
-  }), [selectedDate]);
+  }), [selectedDate, chartPoints, currency, titleColor]);
 
   return (
     <div className="w-full mt-8 p-4 bg-card rounded shadow border border-border">

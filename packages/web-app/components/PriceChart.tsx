@@ -55,7 +55,7 @@ interface CurrentPrice {
 
 export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps) {
   const auth = useAuth();
-  const token = auth.user?.access_token;
+  const token = auth?.user?.access_token;
   const chartRef = useRef<any>(null);
   const [plotArea, setPlotArea] = useState({ left: 0, right: 0 });
   const [chartPoints, setChartPoints] = useState<ChartPoint[]>([]);
@@ -69,51 +69,62 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
   const [lowTariff, setLowTariff] = useState<string>(() => {
     return getCookie('spot_low_tariff') || '';
   });
-  const [dataHash, setDataHash] = useState<string>('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
 
   const { currency } = useCurrency();
 
-  const loadData = async () => {
-    try {
-      const { days, dateRange } = await fetchTodayAndTomorrowData(token);
-      const points: ChartPoint[] = [];
+  const dataHashRef = useRef<string>('');
+  const [now, setNow] = useState(0);
 
-      const addDay = (dateStr: string, entries: HourlyPriceEntry[] | undefined) => {
-        if (!entries) return;
-        const [year, month, day] = dateStr.split('-').map(Number);
-        entries.forEach((entry) => {
-          const timestamp = new Date(year, month - 1, day, entry.hour, entry.minute, 0).getTime();
-          points.push({
-            timestamp,
-            priceCZK: entry.priceCZK,
-            priceEur: entry.priceEur,
-            level: entry.level,
-          });
-        });
-      };
-
-      days?.forEach((dayData: any) => {
-        addDay(dayData?.date || '', dayData?.data);
-      });
-
-      points.sort((a, b) => a.timestamp - b.timestamp);
-      const newHash = JSON.stringify({ days, dateRange });
-      if (newHash !== dataHash) {
-        setDataHash(newHash);
-        setChartPoints(points);
-        setDateRange(dateRange);
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    setTimeout(() => setNow(Date.now()), 0);
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
+
+    const loadData = async () => {
+      try {
+        const { days, dateRange } = await fetchTodayAndTomorrowData(token);
+        const points: ChartPoint[] = [];
+
+        const addDay = (dateStr: string, entries: HourlyPriceEntry[] | undefined) => {
+          if (!entries) return;
+          const [year, month, day] = dateStr.split('-').map(Number);
+          entries.forEach((entry) => {
+            const timestamp = new Date(year, month - 1, day, entry.hour, entry.minute, 0).getTime();
+            points.push({
+              timestamp,
+              priceCZK: entry.priceCZK,
+              priceEur: entry.priceEur,
+              level: entry.level,
+            });
+          });
+        };
+
+        days?.forEach((dayData: any) => {
+          addDay(dayData?.date || '', dayData?.data);
+        });
+
+        points.sort((a, b) => a.timestamp - b.timestamp);
+        const newHash = JSON.stringify({ days, dateRange });
+        if (newHash !== dataHashRef.current) {
+          dataHashRef.current = newHash;
+          setChartPoints(points);
+          setDateRange(dateRange);
+        }
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, [token]);
 
@@ -136,7 +147,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     fetchCurrent();
     const intervalId = setInterval(fetchCurrent, 10000);
     return () => clearInterval(intervalId);
-  }, [onLevelChange]);
+  }, [token, onLevelChange]);
 
   useEffect(() => {
     setCookie('spot_high_tariff', highTariff);
@@ -290,7 +301,6 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     };
   }, [chartPoints, currency, chartRef]);
 
-  const now = Date.now();
   const nowDate = new Date();
   const currentQuarterHour = Math.floor(nowDate.getMinutes() / 15) * 15;
   const currentQuarterTimestamp = new Date(
@@ -468,7 +478,7 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
         beginAtZero: true,
       },
     },
-  }), [annotations, dateRange]);
+  }), [annotations, dateRange, titleColor, currency, chartPoints]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-gray-500">Načítání dat...</div>;

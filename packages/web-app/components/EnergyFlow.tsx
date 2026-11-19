@@ -10,6 +10,38 @@ interface CurrentPrice {
   level: string;
 }
 
+interface ArrowProps {
+  direction: FlowDirection;
+}
+
+const Arrow = ({ direction }: ArrowProps) => {
+  const color = getFlowColor(direction);
+  const isIdle = direction === 'idle';
+
+  return (
+    <div className="flex items-center justify-center w-24" style={{ marginTop: '5px' }}>
+      <svg width="80" height="24" viewBox="0 0 80 24">
+        <defs>
+          <marker id={`arrow-${color.replace('#', '')}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+          </marker>
+        </defs>
+        <line
+          x1="0"
+          y1="12"
+          x2="77"
+          y2="12"
+          stroke={color}
+          strokeWidth={isIdle ? 2 : 3}
+          strokeDasharray={isIdle ? 'none' : '8 4'}
+          opacity={isIdle ? 0.4 : 1}
+          markerEnd={`url(#arrow-${color.replace('#', '')})`}
+        />
+      </svg>
+    </div>
+  );
+};
+
 export default function EnergyFlow() {
   const [flow1, setFlow1] = useState<FlowDirection>('idle');
   const [flow2, setFlow2] = useState<FlowDirection>('idle');
@@ -84,34 +116,6 @@ export default function EnergyFlow() {
       <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
     </marker>
   );
-
-  const Arrow = ({ direction }: { direction: FlowDirection }) => {
-    const color = getFlowColor(direction);
-    const isIdle = direction === 'idle';
-
-    return (
-      <div className="flex items-center justify-center w-24" style={{ marginTop: '5px' }}>
-        <svg width="80" height="24" viewBox="0 0 80 24">
-          <defs>
-            <marker id={`arrow-${color.replace('#', '')}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
-            </marker>
-          </defs>
-          <line
-            x1="0"
-            y1="12"
-            x2="77"
-            y2="12"
-            stroke={color}
-            strokeWidth={isIdle ? 2 : 3}
-            strokeDasharray={isIdle ? 'none' : '8 4'}
-            opacity={isIdle ? 0.4 : 1}
-            markerEnd={`url(#arrow-${color.replace('#', '')})`}
-          />
-        </svg>
-      </div>
-    );
-  };
 
   return (
     <div className="w-full p-4">

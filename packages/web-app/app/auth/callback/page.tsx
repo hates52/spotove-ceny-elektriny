@@ -14,9 +14,9 @@ export default function CallbackPage() {
       router.replace('/?error=auth');
       return;
     }
-    if (!auth.isAuthenticated || !auth.user) return;
+    if (!auth || !auth.isAuthenticated || !auth.user) return;
 
-    const token = auth.user.access_token;
+    const token = auth?.user?.access_token;
     (async () => {
       try {
         const res = await fetch('/api/backend/auth/me', {

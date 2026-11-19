@@ -6,7 +6,7 @@ import { useAuth } from 'react-oidc-context';
 
 export default function HourlyPriceScheduler() {
   const auth = useAuth();
-  const token = auth.user?.access_token;
+  const token = auth?.user?.access_token;
   useEffect(() => {
     const getDelayToNextHour = () => {
       const now = new Date();
@@ -43,7 +43,7 @@ export default function HourlyPriceScheduler() {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [token]);
 
   return null;
 }

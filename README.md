@@ -9,6 +9,44 @@ Monorepo obsahující oddělený backend (API) a frontend (web aplikaci).
 - `packages/mobile-ios` - iOS aplikace (příprava)
 - `packages/mobile-android` - Android aplikace (příprava)
 
+## Proměnné prostředí (.env)
+
+Každý balíček potřebuje vlastní `.env` soubor ve svém adresáře:
+
+### Backend (`packages/backend/.env`)
+
+```env
+PORT=4000
+CRON_SCHEDULE=*/15 * * * *
+DATA_SOURCE=spotovaelektrina
+DATA_DIR=
+
+# TLS (volitelné; pokud není nastaveno, použije se self-signed certifikát v paměti)
+TLS_CERT_PATH=
+TLS_KEY_PATH=
+
+# OIDC / Azure AD
+AZURE_TENANT_ID=<tenant-id>
+OIDC_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
+OIDC_AUDIENCE=api://<client-id>
+OIDC_JWKS_URL=https://login.microsoftonline.com/<tenant-id>/discovery/v2.0/keys
+OIDC_REQUIRED_GROUP=<group-id>
+```
+
+### Frontend (`packages/web-app/.env`)
+
+```env
+BACKEND_URL=https://localhost:4000
+INSECURE_TLS=true
+
+# OIDC / Azure AD
+OIDC_AUTHORITY=https://login.microsoftonline.com/<tenant-id>/v2.0
+OIDC_CLIENT_ID=<client-id>
+OIDC_SCOPE=openid profile email api://<client-id>/.default
+```
+
+`INSECURE_TLS=true` povolí akceptaci self-signed certifikátu backendové API (vhodné pro lokální vývoj). Pro produkci s důvěryhodným certifikátem nastavte `false` nebo odstraňte.
+
 ## Spuštění
 
 ### Backend

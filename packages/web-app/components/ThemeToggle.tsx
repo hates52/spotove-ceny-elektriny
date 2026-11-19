@@ -1,19 +1,9 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <div className="w-24 h-10" />;
-  }
+  const { theme, setTheme } = useTheme();
 
   const themes = ['light', 'dark', 'system'] as const;
   const labels: Record<string, string> = {

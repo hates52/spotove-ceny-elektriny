@@ -17,17 +17,17 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
   const isPublic = pathname ? PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/')) : false;
 
   useEffect(() => {
-    if (!authEnabled || isPublic) return;
+    if (!authEnabled || isPublic || !auth) return;
     if (!auth.isLoading && !auth.isAuthenticated) {
       router.replace('/login');
     }
-  }, [auth.isLoading, auth.isAuthenticated, router, authEnabled, isPublic]);
+  }, [auth, authEnabled, isPublic, router]);
 
   if (!authEnabled || isPublic) {
     return <>{children}</>;
   }
 
-  if (auth.isLoading) {
+  if (!auth || auth.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-gray-600">Načítání...</div>
