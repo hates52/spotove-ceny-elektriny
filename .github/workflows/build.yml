@@ -1,0 +1,442 @@
+name: Build and Release
+
+on:
+  #push:
+  #  branches:
+  #    - main
+  #  tags:
+  #    - "v*.*.*"
+  #  paths-ignore:
+  #    - "README.md"
+  #    - "docs/**"
+  #    - ".github/**"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version (e.g., v1.2.3). If empty, derived from branch/commits."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository_owner }}/spotove-ceny-elektriny/backend
+  IMAGE_NAME_WEB: ${{ github.repository_owner }}/spotove-ceny-elektriny/web
+  NODE_VERSION: "26"
+  # Platforms for Go cross-compilation
+  PLATFORMS: linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64
+
+jobs:
+  verify-backend:
+    name: Verify Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint backend
+        run: npm run lint --workspace=@spotove-ceny-elektriny/backend
+
+      - name: Security audit
+        run: npm run security --workspace=@spotove-ceny-elektriny/backend
+
+      # - name: Run backend tests
+      #   run: npm test --workspace=@spotove-ceny-elektriny/backend
+
+  verify-web-app:
+    name: Verify Web App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint web-app
+        run: npm run lint --workspace=@spotove-ceny-elektriny/web-app
+
+      - name: Security audit
+        run: npm run security --workspace=@spotove-ceny-elektriny/web-app
+
+      # - name: Run web-app tests
+      #   run: npm test --workspace=@spotove-ceny-elektriny/web-app
+
+  version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    needs: [verify-backend, verify-web-app]
+    if: needs.verify-backend.result == 'success' && needs.verify-web-app.result == 'success'
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+      is-release: ${{ steps.set-version.outputs.is-release }}
+      tag: ${{ steps.set-version.outputs.tag }}
+      branch: ${{ steps.set-version.outputs.branch }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Determine version and release info
+        id: set-version
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+          elif [[ "$BRANCH" == "main" ]]; then
+            VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev-$(git rev-parse --short HEAD)")
+          else
+            VERSION="dev-$(echo $BRANCH | sed 's/[^a-zA-Z0-9]/-/g')-$(git rev-parse --short HEAD)"
+          fi
+
+          IS_RELEASE="false"
+          TAG=""
+          if [[ "$BRANCH" == "main" && -n "$INPUT_VERSION" && "$INPUT_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
+            IS_RELEASE="true"
+            TAG="$INPUT_VERSION"
+          fi
+
+          # For non-release builds use 0.0.0-{short.sha} as the version
+          if [[ "$IS_RELEASE" != "true" ]]; then
+            VERSION="0.0.0-$(git rev-parse --short HEAD)"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+  #build-helm:
+  #  name: Build Helm Chart
+  #  runs-on: ubuntu-latest
+  #  needs: version
+  #  outputs:
+  #    version: ${{ needs.version.outputs.version }}
+  #    is-release: ${{ needs.version.outputs.is-release }}
+  #    tag: ${{ needs.version.outputs.tag }}
+  #    branch: ${{ github.ref_name }}
+  #  steps:
+  #    - name: Checkout repository
+  #      uses: actions/checkout@v7
+
+  #    - name: Set up Helm
+  #      uses: azure/setup-helm@v5
+
+  #    - name: Set version and appVersion in Chart.yaml
+  #      run: |
+  #        VERSION="${{ needs.version.outputs.version }}"
+  #        sed -i "s/^version:.*/version: ${VERSION}/" helmchart/Chart.yaml
+  #        sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helmchart/Chart.yaml
+  #        echo "=== Chart.yaml ==="
+  #        cat helmchart/Chart.yaml
+
+  #    - name: Helm package
+  #      run: |
+  #        mkdir -p dist
+  #        helm package helmchart --destination dist \
+  #          --version "${{ needs.version.outputs.version }}" \
+  #          --app-version "${{ needs.version.outputs.version }}"
+
+  #    - name: Upload Helm package artifact
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: persona-chart-${{ needs.version.outputs.version }}
+  #        path: dist/persona-chart-*.tgz
+  #        retention-days: 30
+
+  build-docker-images-backend:
+    name: Build API Docker Images per Platform
+    runs-on: ubuntu-latest
+    needs: [version]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      is-release: ${{ needs.version.outputs.is-release }}
+      tag: ${{ steps.meta.outputs.tag-names }}
+      branch: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cache name
+        id: cache-name
+        run: |
+          echo "cache-name=${{ needs.version.outputs.version }}-backend-cache-${{ matrix.platform }}-${{ github.run_id }}" | sed 's:/:-:g' >> $GITHUB_OUTPUT
+
+      - name: Extract metadata for Backend image
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+
+      - name: Build API image (${{ matrix.platform }})
+        id: build-api
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.backend
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=local,dest=/tmp/${{ steps.cache-name.outputs.cache-name }},mode=max
+          build-args: |
+            COMMIT=${{ github.sha }}
+
+      - name: Upload API cache artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.cache-name.outputs.cache-name }}
+          path: /tmp/${{ steps.cache-name.outputs.cache-name }}
+          retention-days: 1
+
+  build-docker-images-web:
+    name: Build Web Docker Images per Platform
+    runs-on: ubuntu-latest
+    needs: [version]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      is-release: ${{ needs.version.outputs.is-release }}
+      tag: ${{ steps.meta.outputs.tag-names }}
+      branch: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cache name
+        id: cache-name
+        run: |
+          echo "cache-name=${{ needs.version.outputs.version }}-web-cache-${{ matrix.platform }}-${{ github.run_id }}" | sed 's:/:-:g' >> $GITHUB_OUTPUT
+
+      - name: Extract metadata for Web image
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME_WEB }}
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+
+      - name: Build Web image (${{ matrix.platform }})
+        id: build-web
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.web
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=local,dest=/tmp/${{ steps.cache-name.outputs.cache-name }},mode=max
+          build-args: |
+            COMMIT=${{ github.sha }}
+
+      - name: Upload Web cache artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.cache-name.outputs.cache-name }}
+          path: /tmp/${{ steps.cache-name.outputs.cache-name }}
+          retention-days: 1
+
+  push-docker-images:
+    name: Push Multi-Platform Docker Images to GHCR
+    runs-on: ubuntu-latest
+    needs: [build-docker-images-backend, build-docker-images-web]
+    outputs:
+      api-digest: ${{ steps.push-api.outputs.digest }}
+      web-digest: ${{ steps.push-web.outputs.digest }}
+      version-api: ${{ needs.build-docker-images-backend.outputs.version }}
+      version-web: ${{ needs.build-docker-images-web.outputs.version }}
+      is-release-api: ${{ needs.build-docker-images-backend.outputs.is-release }}
+      is-release-web: ${{ needs.build-docker-images-web.outputs.is-release }}
+      branch: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for API image
+        id: meta-backend
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=raw,value=${{ needs.build-docker-images-backend.outputs.version }}
+
+      - name: Extract metadata for Web image
+        id: meta-web
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME_WEB }}
+          tags: |
+            type=raw,value=${{ needs.build-docker-images-web.outputs.version }}
+
+      - name: Download API cache artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/cache-backend
+          pattern: "*-backend-cache-*"
+          merge-multiple: true
+
+      - name: Download Web cache artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/cache-web
+          pattern: "*-web-cache-*"
+          merge-multiple: true
+
+      - name: Build and push multi-platform API image
+        id: push-api
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.backend
+          platforms: |
+            linux/amd64
+            linux/arm64
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=local,src=/tmp/cache-backend
+          cache-to: type=gha,mode=max
+          build-args: |
+            COMMIT=${{ github.sha }}
+
+      - name: Build and push multi-platform Web image
+        id: push-web
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.web
+          platforms: |
+            linux/amd64
+            linux/arm64
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=local,src=/tmp/cache-web
+          cache-to: type=gha,mode=max
+          build-args: |
+            COMMIT=${{ github.sha }}
+
+  #push-helm:
+  #  name: Push Helm Chart to GHCR
+  #  runs-on: ubuntu-latest
+  #  needs: [build-helm, push-docker-images]
+  #  outputs:
+  #    version: ${{ needs.build-helm.outputs.version }}
+  #    is-release: ${{ needs.build-helm.outputs.is-release }}
+  #    branch: ${{ github.ref_name }}
+  #  steps:
+  #    - name: Checkout repository
+  #      uses: actions/checkout@v7
+
+  #    - name: Set up Helm
+  #      uses: azure/setup-helm@v5
+
+  #    - name: Set version and appVersion in Chart.yaml
+  #      run: |
+  #        VERSION="${{ needs.build-helm.outputs.version }}"
+  #        sed -i "s/^version:.*/version: ${VERSION}/" helmchart/Chart.yaml
+  #        sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helmchart/Chart.yaml
+  #        echo
+  #        cat helmchart/Chart.yaml
+
+  #        echo "version=$VERSION" >> $GITHUB_OUTPUT
+  #        echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+  #        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+  #    - name: Helm package
+  #      run: |
+  #        mkdir -p dist
+  #        helm package helmchart \
+  #          --destination dist \
+  #          --version "${{ needs.build-helm.outputs.version }}" \
+  #          --app-version "${{ needs.build-helm.outputs.version }}"
+
+  #    - name: Upload Helm package artifact
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: persona-chart-${{ needs.build-helm.outputs.version }}
+  #        path: dist/persona-chart-*.tgz
+  #        retention-days: 30
+
+  #    - name: Log in to GHCR (Helm registry)
+  #      run: |
+  #        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${{ env.REGISTRY }}" \
+  #          --username "${{ github.actor }}" \
+  #          --password-stdin
+
+  #    - name: Push Helm chart to GHCR
+  #      run: |
+  #        helm push "dist/persona-chart-${{ needs.build-helm.outputs.version }}.tgz" \
+  #          "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}"

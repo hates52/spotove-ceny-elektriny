@@ -1,0 +1,31 @@
+FROM node:26-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY packages/backend/package.json ./packages/backend/
+RUN npm ci --workspace=@spotove-ceny-elektriny/backend
+
+COPY packages/backend/tsconfig.json ./packages/backend/
+COPY packages/backend/src ./packages/backend/src
+
+RUN npm run build --workspace=@spotove-ceny-elektriny/backend
+
+FROM node:26-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=4000
+EXPOSE 4000
+
+ARG COMMIT
+LABEL org.opencontainers.image.revision=${COMMIT}
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
+COPY --from=builder /app/packages/backend/package.json ./packages/backend/package.json
+
+CMD ["node", "packages/backend/dist/index.js"]
