@@ -360,7 +360,7 @@ jobs:
           pattern: "*-web-cache-*"
           merge-multiple: true
 
-      - name: Build and push multi-platform image
+      - name: Build and push multi-platform BACKEND image
         id: push-backend
         uses: docker/build-push-action@v7
         with:
@@ -377,7 +377,7 @@ jobs:
           build-args: |
             COMMIT=${{ github.sha }}
 
-      - name: Build and push multi-platform Web image
+      - name: Build and push multi-platform WEB image
         id: push-web
         uses: docker/build-push-action@v7
         with:
