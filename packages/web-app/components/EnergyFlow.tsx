@@ -14,6 +14,12 @@ interface ArrowProps {
   direction: FlowDirection;
 }
 
+const getFlowColor = (direction: FlowDirection) => {
+  if (direction === 'charging') return '#22c55e';
+  if (direction === 'discharging') return '#ef4444';
+  return '#9ca3af';
+};
+
 const Arrow = ({ direction }: ArrowProps) => {
   const color = getFlowColor(direction);
   const isIdle = direction === 'idle';
@@ -84,12 +90,6 @@ export default function EnergyFlow() {
     const intervalId = setInterval(fetchCurrent, 1000);
     return () => clearInterval(intervalId);
   }, []);
-
-  const getFlowColor = (direction: FlowDirection) => {
-    if (direction === 'charging') return '#22c55e';
-    if (direction === 'discharging') return '#ef4444';
-    return '#9ca3af';
-  };
 
   const flowAnimation = (direction: FlowDirection) => {
     const color = getFlowColor(direction);
