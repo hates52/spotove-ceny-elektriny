@@ -15,9 +15,9 @@ export default function Home() {
   return (
     <CurrencyProvider>
       <RequireAuth>
-        <main className="min-h-screen bg-background py-8">
-          <div className="px-4">
-            <div className="mb-4 flex items-center justify-between">
+        <main className="min-h-screen bg-background py-4 sm:py-8">
+          <div className="px-3 sm:px-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Image src="/assets/logo.svg" alt="Spotové ceny elektřiny" width={40} height={40} />
                 <h1 className="text-2xl font-bold text-foreground">Spotové ceny elektřiny</h1>

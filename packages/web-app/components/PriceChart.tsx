@@ -295,9 +295,14 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
     };
     const timeout = setTimeout(updateGradient, 100);
     const timeout2 = setTimeout(updateGradient, 300);
+    const onResize = () => {
+      updateGradient();
+    };
+    window.addEventListener('resize', onResize);
     return () => {
       clearTimeout(timeout);
       clearTimeout(timeout2);
+      window.removeEventListener('resize', onResize);
     };
   }, [chartPoints, currency, chartRef]);
 
@@ -557,72 +562,29 @@ export default function PriceChart({ lastLevel, onLevelChange }: PriceChartProps
           Zatím nejsou k dispozici žádná data.
         </div>
       ) : (
-        <>
-          <div className="h-96">
+        <div className="flex flex-col gap-4">
+          <div className="h-96 sm:h-80 md:h-96">
             <Line ref={chartRef} data={chartData} options={options} />
           </div>
-          <div className="mt-3" style={{ paddingLeft: plotArea.left + 10, paddingRight: plotArea.right + 10 }}>
-            <div
-              className="h-2 w-full"
-              style={{
-                background: `linear-gradient(to right, ${(() => {
-                  const values = chartPoints.map((d) =>
-                    currency === 'CZK' ? d.priceCZK : d.priceEur
-                  );
-                  const min = Math.min(...values);
-                  const max = Math.max(...values);
-
-                  const getInterpolatedColor = (value: number) => {
-                    if (max === min) return 'rgb(234, 179, 8)';
-                    const t = (value - min) / (max - min);
-                    if (t <= 0) return 'rgb(34, 197, 94)';
-                    if (t >= 1) return 'rgb(239, 68, 68)';
-                    if (t < 0.5) {
-                      const s = t / 0.5;
-                      const r = Math.round(34 + (234 - 34) * s);
-                      const g = Math.round(197 + (179 - 197) * s);
-                      const b = Math.round(94 + (8 - 94) * s);
-                      return `rgb(${r}, ${g}, ${b})`;
-                    } else {
-                      const s = (t - 0.5) / 0.5;
-                      const r = Math.round(234 + (239 - 234) * s);
-                      const g = Math.round(179 + (68 - 179) * s);
-                      const b = Math.round(8 + (68 - 8) * s);
-                      return `rgb(${r}, ${g}, ${b})`;
-                    }
-                  };
-
-                  return chartPoints
-                    .map((d, i) => {
-                      const value = currency === 'CZK' ? d.priceCZK : d.priceEur;
-                      const pct = (i / Math.max(1, chartPoints.length - 1)) * 100;
-                      return `${getInterpolatedColor(value)} ${pct}%`;
-                    })
-                    .join(', ');
-                })()})`,
-              }}
-            />
-          </div>
-        </>
-      )}
-
-      <div className="mt-4 p-3 bg-muted/50 rounded border border-border text-sm">
-        <div className="font-semibold mb-2 text-card-foreground">Legenda cenových úrovní:</div>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 bg-green-500 rounded"></span>
-            <span className="text-card-foreground"><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče.</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 bg-yellow-500 rounded"></span>
-            <span className="text-card-foreground"><strong>medium (střední):</strong> Průměrná, běžná cena v rámci dne.</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 bg-red-500 rounded"></span>
-            <span className="text-card-foreground"><strong>high (vysoká):</strong> Elektřina je drahá. Je vhodné odložit spotřebu a vypnout volitelné zátěže.</span>
+          <div className="p-3 bg-muted/50 rounded border border-border text-sm">
+            <div className="font-semibold mb-2 text-card-foreground">Legenda cenových úrovní:</div>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-4 h-4 bg-green-500 rounded"></span>
+                <span className="text-card-foreground"><strong>low (nízká):</strong> Elektřina je v rámci dne levná. Doporučuje se zapnout náročné spotřebiče.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-4 h-4 bg-yellow-500 rounded"></span>
+                <span className="text-card-foreground"><strong>medium (střední):</strong> Průměrná, běžná cena v rámci dne.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-4 h-4 bg-red-500 rounded"></span>
+                <span className="text-card-foreground"><strong>high (vysoká):</strong> Elektřina je drahá. Je vhodné odložit spotřebu a vypnout volitelné zátěže.</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

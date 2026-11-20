@@ -57,4 +57,18 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+
+  /* Mobilní optimalizace */
+  @media (max-width: 640px) {
+    body {
+      font-size: 15px;
+    }
+    /* Větší touch targets */
+    button {
+      min-height: 44px;
+    }
+    input[type="number"] {
+      min-height: 44px;
+    }
+  }
 }
