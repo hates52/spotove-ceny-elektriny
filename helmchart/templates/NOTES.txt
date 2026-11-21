@@ -1,0 +1,43 @@
+1. Get the application URLs by running these commands:
+{{- if .Values.web.httpRoute.enabled }}
+{{- if .Values.web.httpRoute.hostnames }}
+    export WEB_HOSTNAME={{ .Values.web.httpRoute.hostnames | first }}
+{{- else }}
+    export WEB_HOSTNAME=$(kubectl get --namespace {{ .Release.Namespace }} gateway/{{ (first .Values.web.httpRoute.parentRefs).name }} -o jsonpath="{.spec.listeners[0].hostname}")
+  {{- end }}
+    echo "Web app: http://$WEB_HOSTNAME"
+{{- else if .Values.web.ingress.enabled }}
+{{- range $host := .Values.web.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.web.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }} (web)
+  {{- end }}
+{{- end }}
+{{- else }}
+    export WEB_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name=web,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+    kubectl --namespace {{ .Release.Namespace }} port-forward $WEB_POD 3000:{{ .Values.web.service.port }}
+    echo "Web app available at http://127.0.0.1:3000"
+{{- end }}
+
+{{- if .Values.backend.httpRoute.enabled }}
+{{- if .Values.backend.httpRoute.hostnames }}
+    export BACKEND_HOSTNAME={{ .Values.backend.httpRoute.hostnames | first }}
+{{- else }}
+    export BACKEND_HOSTNAME=$(kubectl get --namespace {{ .Release.Namespace }} gateway/{{ (first .Values.backend.httpRoute.parentRefs).name }} -o jsonpath="{.spec.listeners[0].hostname}")
+  {{- end }}
+    echo "Backend API: http://$BACKEND_HOSTNAME"
+{{- else if .Values.backend.ingress.enabled }}
+{{- range $host := .Values.backend.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.backend.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }} (backend)
+  {{- end }}
+{{- end }}
+{{- else }}
+    export BACKEND_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name=backend,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+    kubectl --namespace {{ .Release.Namespace }} port-forward $BACKEND_POD 4000:{{ .Values.backend.service.port }}
+    echo "Backend API available at http://127.0.0.1:4000"
+{{- end }}
+
+{{- if not .Values.web.httpRoute.enabled -}}{{- if not .Values.web.ingress.enabled -}}
+3. To access backend from web-app or external services, use:
+    export BACKEND_URL="http://$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "spotova-cena-elektriny.fullname" . }}-backend -o jsonpath="{.spec.clusterIP}"):{{ .Values.backend.service.port }}"
+{{- end -}}{{- end }}

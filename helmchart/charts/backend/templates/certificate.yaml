@@ -1,0 +1,19 @@
+{{- if .Values.tls.enabled }}
+{{- if .Values.tls.certManager.issuerRef.name }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "backend.fullname" . }}-tls
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.tls.secretName | default (printf "%s-tls" (include "backend.fullname" .)) }}
+  issuerRef:
+    name: {{ .Values.tls.certManager.issuerRef.name }}
+    kind: {{ .Values.tls.certManager.issuerRef.kind }}
+  dnsNames:
+    {{- range .Values.ingress.hosts }}
+    - {{ .host }}
+    {{- end }}
+{{- end }}
+{{- end }}
