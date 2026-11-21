@@ -228,9 +228,14 @@ export default function DailyCalendarAndChart() {
     };
     const timeout = setTimeout(updateGradient, 100);
     const timeout2 = setTimeout(updateGradient, 300);
+    const onResize = () => {
+      updateGradient();
+    };
+    window.addEventListener('resize', onResize);
     return () => {
       clearTimeout(timeout);
       clearTimeout(timeout2);
+      window.removeEventListener('resize', onResize);
     };
   }, [chartPoints, currency, chartRef]);
 
@@ -309,7 +314,7 @@ export default function DailyCalendarAndChart() {
           {loadingDates ? <div className="text-muted-foreground">Načítání kalendáře...</div> : <div className="min-h-[448px]">{renderCalendar()}</div>}
         </div>
         <div className="flex flex-col">
-          <div className="h-[400px] bg-muted/50 rounded p-2">
+          <div className="h-[320px] sm:h-[400px] bg-muted/50 rounded p-2">
             {!selectedDate && <div className="flex items-center justify-center h-full text-muted-foreground">Klikněte na dostupný den v kalendáři.</div>}
             {selectedDate && loadingDay && <div className="flex items-center justify-center h-full text-muted-foreground">Načítání dat...</div>}
             {selectedDate && !loadingDay && chartPoints.length > 0 && (
