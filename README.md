@@ -70,3 +70,103 @@ npm run dev
 Frontend běží na http://localhost:3000
 
 Frontend proxyuje API serverově přes HTTPS. Pro lokální self-signed certifikát nastavte v prostředí webapp `INSECURE_TLS=true`; pro certifikát důvěryhodný klientským systémem ponechte `false`. Backendový origin lze nastavit přes `BACKEND_URL`.
+
+## Docker images
+
+Obrázky jsou hostovány na GitHub Container Registry (GHCR):
+
+```bash
+docker pull ghcr.io/hates52/spotove-ceny-elektriny/backend:0.0.0-c9d73b9
+docker pull ghcr.io/hates52/spotove-ceny-elektriny/web:0.0.0-c9d73b9
+
+```
+
+Tag obsahuje verzi a commit hash (např. `0.0.0-c9d73b9`). Konkrétní imagen (backend/web) se vybírá pomocí tagu v Helm chartu.
+
+## Helm chart
+
+### Instalace
+
+```bash
+helm install spotove-ceny-elektriny oci://ghcr.io/hates52/spotove-ceny-elektriny:0.0.0-c9d73b9
+```
+
+Nebo instalace z lokálního archivu:
+
+```bash
+helm package helmchart -d dist
+helm install spotove-ceny-elektriny dist/spotove-ceny-elektriny-<version>.tgz
+```
+
+### Globální nastavení
+
+V `helmchart/values.yaml`:
+
+| Hodnota | Popis | Default |
+|---------|-------|---------|
+| `image.tag` | Image tag (globální pro všechny subcharty) | `""` (použije `.Chart.AppVersion`) |
+| `image.pullPolicy` | Image pull policy (globální) | `IfNotPresent` |
+| `imagePullSecrets` | Seznam image pull secrets | `[]` |
+
+### Subcharty
+
+| Subchart | Popis | Port |
+|----------|-------|------|
+| `backend` | API server (Express + Node.js) | 4000 |
+| `web` | Frontend aplikace (Next.js) | 3000 |
+
+Každý subchart podporuje vlastní nastavení:
+
+```yaml
+backend:
+  image:
+    repository: ghcr.io/hates52/spotove-ceny-elektriny/backend
+    tag: backend-0.0.0-c9d73b9
+    pullPolicy: IfNotPresent
+  extraEnv: []
+  replicaCount: 1
+
+web:
+  image:
+    repository: ghcr.io/hates52/spotove-ceny-elektriny/web
+    tag: web-0.0.0-c9d73b9
+    pullPolicy: IfNotPresent
+  extraEnv: []
+  replicaCount: 1
+```
+
+### Priorita hodnoty tagu
+
+1. `image.tag` v daném subchartu (nejvyšší)
+2. `image.tag` v globální sekci (fallback)
+3. `.Chart.AppVersion` (poslední fallback)
+
+### ConfigMap
+
+Konfigurace je sdílena přes ConfigMap s názvem `<release-name>-spotove-ceny-elektriny-config`. Obsahuje hodnoty z `config.backend` a `config.web` sekce v `values.yaml`.
+
+### TLS (cert-manager)
+
+Backend podporuje TLS certifikáty přes cert-manager. Povolení:
+
+```yaml
+backend:
+  tls:
+    enabled: true
+    certManager:
+      issuerRef:
+        name: letsencrypt-prod
+        kind: ClusterIssuer
+    secretName: spotove-ceny-elektriny-backend-tls
+    mountPath: /etc/tls
+```
+
+Certifikát se připojí jako volume na `mountPath`. Proměnné `TLS_CERT_PATH` a `TLS_KEY_PATH` odkazují na cesty v tomto volume.
+
+### Port forwarding pro lokální testování
+
+```bash
+helm install spotove-ceny-elektriny helmchart
+kubectl port-forward svc/spotove-ceny-elektriny-backend 4000:4000
+kubectl port-forward svc/spotove-ceny-elektriny-web 3000:3000
+```
