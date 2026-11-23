@@ -168,8 +168,8 @@ jobs:
       - name: Upload Helm package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: spotova-cena-elektriny-chart-${{ needs.version.outputs.version }}
-          path: dist/spotova-cena-elektriny-*.tgz
+          name: spotove-ceny-elektriny-chart-${{ needs.version.outputs.version }}
+          path: dist/spotove-ceny-elektriny-*.tgz
           retention-days: 30
 
   build-docker-images-backend:
@@ -412,7 +412,7 @@ jobs:
       - name: Download Helm package artifact
         uses: actions/download-artifact@v4
         with:
-          name: spotova-cena-elektriny-chart-${{ needs.build-helm.outputs.version }}
+          name: spotove-ceny-elektriny-chart-${{ needs.build-helm.outputs.version }}
           path: dist/
 
       - name: Log in to GHCR (Helm registry)
@@ -423,5 +423,5 @@ jobs:
 
       - name: Push Helm chart to GHCR
         run: |
-          helm push "dist/spotova-cena-elektriny-${{ needs.build-helm.outputs.version }}.tgz" \
+          helm push "dist/spotove-ceny-elektriny-${{ needs.build-helm.outputs.version }}.tgz" \
             "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}"

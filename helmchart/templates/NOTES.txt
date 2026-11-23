@@ -39,5 +39,5 @@
 
 {{- if not .Values.web.httpRoute.enabled -}}{{- if not .Values.web.ingress.enabled -}}
 3. To access backend from web-app or external services, use:
-    export BACKEND_URL="http://$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "spotova-cena-elektriny.fullname" . }}-backend -o jsonpath="{.spec.clusterIP}"):{{ .Values.backend.service.port }}"
+    export BACKEND_URL="http://$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "spotove-ceny-elektriny.fullname" . }}-backend -o jsonpath="{.spec.clusterIP}"):{{ .Values.backend.service.port }}"
 {{- end -}}{{- end }}

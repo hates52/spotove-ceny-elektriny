@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "spotova-cena-elektriny.name" -}}
+{{- define "spotove-ceny-elektriny.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "spotova-cena-elektriny.fullname" -}}
+{{- define "spotove-ceny-elektriny.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "spotova-cena-elektriny.chart" -}}
+{{- define "spotove-ceny-elektriny.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "spotova-cena-elektriny.labels" -}}
-helm.sh/chart: {{ include "spotova-cena-elektriny.chart" . }}
-{{ include "spotova-cena-elektriny.selectorLabels" . }}
+{{- define "spotove-ceny-elektriny.labels" -}}
+helm.sh/chart: {{ include "spotove-ceny-elektriny.chart" . }}
+{{ include "spotove-ceny-elektriny.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,7 +43,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "spotova-cena-elektriny.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "spotova-cena-elektriny.name" . }}
+{{- define "spotove-ceny-elektriny.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "spotove-ceny-elektriny.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

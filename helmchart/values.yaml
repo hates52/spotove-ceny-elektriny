@@ -1,4 +1,4 @@
-# Default values for spotova-cena-elektriny
+# Default values for spotove-ceny-elektriny
 # This is a YAML-formatted file.
 
 # Global settings
@@ -130,7 +130,7 @@ config:
     CRON_SCHEDULE: "*/15 * * * *"
     DATA_SOURCE: "ote"
   web:
-    BACKEND_URL: "https://spotova-cena-elektriny-backend:4000"
+    BACKEND_URL: "https://spotove-ceny-elektriny-backend:4000"
     INSECURE_TLS: "false"
 
   # OIDC configuration
