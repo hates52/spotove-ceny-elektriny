@@ -87,3 +87,11 @@ httpRoute:
         - path:
             type: PathPrefix
             value: /
+
+# Data PVC configuration
+dataPVC:
+  enabled: false
+  size: 5Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce

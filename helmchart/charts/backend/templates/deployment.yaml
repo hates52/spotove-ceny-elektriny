@@ -58,11 +58,17 @@ spec:
           env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.tls.enabled }}
+          {{- if or .Values.tls.enabled .Values.dataPVC.enabled }}
           volumeMounts:
+            {{- if .Values.tls.enabled }}
             - name: tls-certs
               mountPath: {{ .Values.tls.mountPath }}
               readOnly: true
+            {{- end }}
+            {{- if .Values.dataPVC.enabled }}
+            - name: data
+              mountPath: /app/data
+            {{- end }}
           {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
@@ -76,11 +82,18 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if .Values.tls.enabled }}
+      {{- if or .Values.tls.enabled .Values.dataPVC.enabled }}
       volumes:
+        {{- if .Values.tls.enabled }}
         - name: tls-certs
           secret:
             secretName: {{ .Values.tls.secretName | default (printf "%s-tls" (include "backend.fullname" .)) }}
+        {{- end }}
+        {{- if .Values.dataPVC.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "backend.fullname" . }}-data
+        {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

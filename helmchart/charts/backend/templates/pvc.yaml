@@ -1,0 +1,19 @@
+{{- if .Values.dataPVC.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "backend.fullname" . }}-data
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.dataPVC.accessModes }}
+    - {{ . }}
+    {{- end }}
+  {{- if .Values.dataPVC.storageClassName }}
+  storageClassName: {{ .Values.dataPVC.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.dataPVC.size }}
+{{- end }}

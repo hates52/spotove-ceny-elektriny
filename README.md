@@ -75,16 +75,20 @@ Frontend proxyuje API serverově přes HTTPS. Pro lokální self-signed certifik
 
 Obrázky jsou hostovány na GitHub Container Registry (GHCR):
 
-- Backend: `ghcr.io/hates52/spotove-ceny-elektriny/backend`
-- Web: `ghcr.io/hates52/spotove-ceny-elektriny/web`
+```bash
+docker pull ghcr.io/hates52/spotove-ceny-elektriny/backend:0.0.0-c9d73b9
+docker pull ghcr.io/hates52/spotove-ceny-elektriny/web:0.0.0-c9d73b9
+
+```
+
+Tag obsahuje verzi a commit hash (např. `0.0.0-c9d73b9`). Konkrétní imagen (backend/web) se vybírá pomocí tagu v Helm chartu.
 
 ## Helm chart
 
 ### Instalace
 
 ```bash
-helm repo add spotove-ceny-elektriny https://hates52.github.io/spotove-ceny-elektriny
-helm install spotove-ceny-elektriny spotove-ceny-elektriny/spotove-ceny-elektriny
+helm install spotove-ceny-elektriny oci://ghcr.io/hates52/spotove-ceny-elektriny:0.0.0-c9d73b9
 ```
 
 Nebo instalace z lokálního archivu:
@@ -117,7 +121,7 @@ Každý subchart podporuje vlastní nastavení:
 backend:
   image:
     repository: ghcr.io/hates52/spotove-ceny-elektriny/backend
-    tag: ""
+    tag: backend-0.0.0-c9d73b9
     pullPolicy: IfNotPresent
   extraEnv: []
   replicaCount: 1
@@ -125,7 +129,7 @@ backend:
 web:
   image:
     repository: ghcr.io/hates52/spotove-ceny-elektriny/web
-    tag: ""
+    tag: web-0.0.0-c9d73b9
     pullPolicy: IfNotPresent
   extraEnv: []
   replicaCount: 1
